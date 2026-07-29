@@ -5,14 +5,14 @@ interface StrainVerseAppIconProps {
   className?: string;
 }
 
-/** App mark: hands holding buds on black with smoke (matches public/logo-master.png). */
+/** App mark: transparent hands + buds + smoke (public/logo-master.png). */
 const StrainVerseAppIcon: React.FC<StrainVerseAppIconProps> = ({ size = 24, className = '' }) => (
   <img
     src="/pwa-192.png"
     alt=""
     width={size}
     height={size}
-    className={`rounded-[22%] object-cover flex-shrink-0 ${className}`}
+    className={`object-contain flex-shrink-0 ${className}`}
     aria-hidden="true"
   />
 );

@@ -21,7 +21,11 @@ const sizes = [
 ];
 
 for (const { name, size } of sizes) {
-  await sharp(source).resize(size, size).png().toFile(resolve(publicDir, name));
+  await sharp(source)
+    .ensureAlpha()
+    .resize(size, size, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .png()
+    .toFile(resolve(publicDir, name));
 }
 
 if (existsSync(masterPng)) {
