@@ -1,6 +1,7 @@
 import React from 'react';
 import { AppView, User } from '../types';
-import { Sprout, Globe, Users, User as UserIcon, LogOut, Flame } from 'lucide-react';
+import { LogOut } from 'lucide-react';
+import { getVisibleNavItems } from '../navConfig';
 import Logo from './Logo';
 
 interface SidebarProps {
@@ -10,14 +11,6 @@ interface SidebarProps {
   onSignOut: () => void;
   userAge: number | null;
 }
-
-const navItems = [
-    { view: AppView.STRAINVERSE, label: 'StrainVerse', icon: Sprout },
-    { view: AppView.HERBHUB, label: 'HerbHub', icon: Globe },
-    { view: AppView.MATCHIT, label: 'MatchIt', icon: Flame, ageGate: true },
-    { view: AppView.SOCIALSESH, label: 'SocialSesh', icon: Users },
-    { view: AppView.PROFILE, label: 'My Stash', icon: UserIcon },
-];
 
 const NavLink: React.FC<{ icon: React.ElementType, label: string, isActive: boolean, onClick: () => void }> = ({ icon: Icon, label, isActive, onClick }) => (
     <button
@@ -34,12 +27,7 @@ const NavLink: React.FC<{ icon: React.ElementType, label: string, isActive: bool
 );
 
 const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, user, onSignOut, userAge }) => {
-  const visibleNavItems = navItems.filter(item => {
-    if (item.ageGate) {
-        return userAge !== null && userAge >= 21;
-    }
-    return true;
-  });
+  const visibleNavItems = getVisibleNavItems(userAge);
 
   return (
     <aside className="w-64 h-screen sticky top-0 border-r border-[var(--border)] p-4 flex-col justify-between hidden lg:flex bg-[var(--bg-card)]/70 backdrop-blur-xl">
