@@ -11,9 +11,13 @@ path = ROOT / 'public' / 'logo-master.png'
 
 def is_background(r: int, g: int, b: int) -> bool:
     m = max(r, g, b)
+    mn = min(r, g, b)
     if m < 28:
         return True
-    if m < 45 and (m - min(r, g, b)) < 18:
+    if m < 45 and (m - mn) < 18:
+        return True
+    # near-white studio / checkerboard export backgrounds
+    if mn > 235 and (m - mn) < 25:
         return True
     return False
 
