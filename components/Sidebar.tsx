@@ -1,6 +1,7 @@
 import React from 'react';
 import { AppView, User } from '../types';
-import { Sprout, Globe, Users, User as UserIcon, LogOut, Flame } from 'lucide-react';
+import { Globe, Users, User as UserIcon, LogOut, Flame } from 'lucide-react';
+import CannabisLeafIcon from './icons/CannabisLeafIcon';
 import Logo from './Logo';
 
 interface SidebarProps {
@@ -12,7 +13,7 @@ interface SidebarProps {
 }
 
 const navItems = [
-    { view: AppView.STRAINVERSE, label: 'StrainVerse', icon: Sprout },
+    { view: AppView.STRAINVERSE, label: 'StrainVerse', icon: CannabisLeafIcon },
     { view: AppView.HERBHUB, label: 'HerbHub', icon: Globe },
     { view: AppView.MATCHIT, label: 'MatchIt', icon: Flame, ageGate: true },
     { view: AppView.SOCIALSESH, label: 'SocialSesh', icon: Users },
