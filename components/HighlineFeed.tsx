@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Post, PostVisibility, ReactionType, Story, User, PostComment } from '../types';
-import { Send, Image as ImageIcon, XCircle, Music, Leaf, Rocket, ThumbsDown, HelpCircle, Heart, Plus, Wand2, Flame, MapPin, ThumbsUp, MessageSquare } from 'lucide-react';
+import { Send, Image as ImageIcon, XCircle, Music, Leaf, Rocket, ThumbsDown, HelpCircle, Heart, Plus, Wand2, Flame, MapPin, ThumbsUp, MessageSquare, Trash2 } from 'lucide-react';
 import CreatePostModal from './CreatePostModal';
-import { StrainStories, SkeletonPost } from './common';
+import { StrainStories, SkeletonPost, FullscreenImage } from './common';
 import { api } from '../services/supabaseClient';
 
 
 // 2. HIGHLINE FEED COMPONENT
-const HighlineFeed: React.FC<{ user: User, posts: Post[], onReaction: (postId: string, type: ReactionType) => void, onPost: (content: string, visibility: PostVisibility, image?: File | null, meta?: any, isMatchIt?: boolean) => void, isLocal?: boolean, stories: Story[], isLoading: boolean, onAddStoryClick: () => void }> = ({ user, posts, onReaction, onPost, isLocal = false, stories, isLoading, onAddStoryClick }) => {
+const HighlineFeed: React.FC<{ user: User, posts: Post[], onReaction: (postId: string, type: ReactionType) => void, onPost: (content: string, visibility: PostVisibility, image?: File | null, meta?: any, isMatchIt?: boolean) => void, onDelete?: (postId: string) => void, isLocal?: boolean, stories: Story[], isLoading: boolean, onAddStoryClick: () => void }> = ({ user, posts, onReaction, onPost, onDelete, isLocal = false, stories, isLoading, onAddStoryClick }) => {
     const [isPostModalOpen, setPostModalOpen] = useState(false);
     const [localPosts, setLocalPosts] = useState<Post[]>(posts);
     const [openCommentsPostId, setOpenCommentsPostId] = useState<string | null>(null);
@@ -49,6 +49,12 @@ const HighlineFeed: React.FC<{ user: User, posts: Post[], onReaction: (postId: s
             ));
         }
     };
+
+    const handleDeletePost = (postId: string) => {
+        if (!onDelete || !window.confirm('Delete this post? This cannot be undone.')) return;
+        onDelete(postId);
+        setOpenCommentsPostId(current => (current === postId ? null : current));
+    };
     
     const reactionMap: Partial<Record<ReactionType, { icon: React.ReactNode, color: string, hoverColor: string }>> = {
         'THUMBS_UP': { icon: <ThumbsUp size={16} />, color: 'text-sky-500', hoverColor: 'group-hover:text-sky-500' },
@@ -78,7 +84,17 @@ const HighlineFeed: React.FC<{ user: User, posts: Post[], onReaction: (postId: s
                 </div>
             ) : localPosts.map(post => (
                 <div key={post.id} className="p-3 sm:p-4">
-                    <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-[1.5rem] p-4 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-soft)] transition-shadow">
+                    <div className="relative bg-[var(--bg-card)] border border-[var(--border)] rounded-[1.5rem] p-4 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-soft)] transition-shadow">
+                        {post.userId === user.id && onDelete && (
+                            <button
+                                type="button"
+                                onClick={() => handleDeletePost(post.id)}
+                                className="absolute top-3 right-3 p-1.5 text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 rounded-full transition-colors"
+                                aria-label="Delete post"
+                            >
+                                <Trash2 size={16} />
+                            </button>
+                        )}
                         {isLocal && post.distance && (
                             <div className="text-xs text-[var(--accent)] font-bold mb-2 flex items-center gap-1">
                                 <MapPin size={12}/> {post.distance.toFixed(1)}km away
@@ -86,7 +102,7 @@ const HighlineFeed: React.FC<{ user: User, posts: Post[], onReaction: (postId: s
                         )}
                         <div className="flex gap-3">
                             <img src={post.userAvatar} className="w-12 h-12 rounded-full ring-2 ring-[var(--border)] object-cover" />
-                            <div className="flex-1">
+                            <div className="flex-1 min-w-0 pr-8">
                                 <div className="flex items-center flex-wrap gap-2">
                                     <h4 className="font-bold text-[var(--text-main)] flex items-center">{post.userName} {post.mood && <span className="text-2xl ml-2">{post.mood}</span>}</h4>
                                     <span className="text-sm text-[var(--text-muted)]">@{post.userName.toLowerCase()}</span>
@@ -98,7 +114,13 @@ const HighlineFeed: React.FC<{ user: User, posts: Post[], onReaction: (postId: s
                                     )}
                                 </div>
                                 <p className="text-[var(--text-main)] whitespace-pre-wrap mt-1 leading-relaxed">{post.content}</p>
-                                {post.image && <img src={post.image} className="mt-3 rounded-[1.25rem] border border-[var(--border)] max-h-96 w-full object-cover" />}
+                                {post.image && (
+                                    <FullscreenImage
+                                        src={post.image}
+                                        alt={`Post by ${post.userName}`}
+                                        className="mt-3 rounded-[1.25rem] border border-[var(--border)] max-h-96 w-full object-cover"
+                                    />
+                                )}
                                 
                                 {(post.strain || post.highLevel || post.soundtrack) && (
                                     <div className="mt-3 bg-[var(--bg-input)] rounded-2xl p-2.5 flex items-center gap-4 text-xs">

@@ -2,7 +2,7 @@ import React, { useState, FC } from 'react';
 import { User, Post, PostVisibility, ReactionType, Story } from '../types';
 import { Send, Image as ImageIcon, XCircle, Flame, MapPin, Plus, CloudFog, HelpCircle, Heart, Compass, Calendar, BarChart2 } from 'lucide-react';
 import CreatePostModal from './CreatePostModal';
-import { StrainStories, SkeletonPost } from './common';
+import { StrainStories, SkeletonPost, FullscreenImage } from './common';
 
 const PlaceholderTab: FC<{ title: string; icon: React.ElementType }> = ({ title, icon: Icon }) => (
     <div className="p-8 text-center text-[var(--text-muted)] flex flex-col items-center justify-center h-full">
@@ -96,7 +96,13 @@ const LocalLoud: React.FC<{ user: User, posts: Post[], onReaction: (postId: stri
                                 <span className="text-sm text-[var(--text-muted)]">· {new Date(post.timestamp).toLocaleDateString()}</span>
                             </div>
                             <p className="text-[var(--text-main)] whitespace-pre-wrap mt-1">{post.content}</p>
-                            {post.image && <img src={post.image} className="mt-3 rounded-2xl border border-[var(--border)] max-h-96 w-full object-cover" />}
+                            {post.image && (
+                                <FullscreenImage
+                                    src={post.image}
+                                    alt={`Post by ${post.userName}`}
+                                    className="mt-3 rounded-2xl border border-[var(--border)] max-h-96 w-full object-cover"
+                                />
+                            )}
                             <div className="flex items-center justify-around text-[var(--text-muted)] mt-4">
                                 {reactionsToDisplay.map(type => (
                                     <button key={type} onClick={() => onReaction(post.id, type)} className={`flex items-center gap-2 text-sm font-mono group transition-colors ${post.userReaction === type ? reactionMap[type]!.activeColor : 'hover:text-[var(--text-main)]'}`}>
