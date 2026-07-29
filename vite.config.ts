@@ -14,13 +14,13 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: null,
-      includeAssets: ['logo.svg', 'apple-touch-icon.png', 'pwa-192.png', 'pwa-512.png', 'favicon.ico'],
+      includeAssets: ['logo.svg', 'apple-touch-icon.png', 'pwa-192.png', 'pwa-512.png', 'favicon.ico', 'favicon-16.png', 'favicon-32.png', 'favicon-48.png'],
       manifest: {
         id: '/',
         name: 'StrainVerse',
         short_name: 'StrainVerse',
         description: 'The Universe of Strains, Powered by You. A cannabis-culture social network and strain encyclopedia.',
-        theme_color: '#225F41',
+        theme_color: '#0a0a0a',
         background_color: '#0a0a0a',
         display: 'standalone',
         orientation: 'portrait',
