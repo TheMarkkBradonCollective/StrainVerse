@@ -5,7 +5,7 @@ interface StrainVerseAppIconProps {
   className?: string;
 }
 
-/** App mark: SpiritsVerse style, exact joint-pass pose (public/logo-master.png). */
+/** App mark: five-hand cannabis toast (bong, joint, pipe, pen, rig) — SpiritsVerse style. */
 const StrainVerseAppIcon: React.FC<StrainVerseAppIconProps> = ({ size = 24, className = '' }) => (
   <img
     src="/pwa-192.png"
