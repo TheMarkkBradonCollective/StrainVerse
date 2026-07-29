@@ -11,6 +11,13 @@ const masterPng = resolve(publicDir, 'logo-master.png');
 const masterSvg = resolve(publicDir, 'logo.svg');
 const source = existsSync(masterPng) ? masterPng : masterSvg;
 
+const corner = await sharp(source).extract({ left: 0, top: 0, width: 1, height: 1 }).raw().toBuffer();
+const cornerMax = Math.max(corner[0], corner[1], corner[2]);
+const resizeBackground =
+  cornerMax < 40
+    ? { r: 10, g: 10, b: 10, alpha: 1 }
+    : { r: 0, g: 0, b: 0, alpha: 0 };
+
 const sizes = [
   { name: 'pwa-512.png', size: 512 },
   { name: 'pwa-192.png', size: 192 },
@@ -23,7 +30,7 @@ const sizes = [
 for (const { name, size } of sizes) {
   await sharp(source)
     .ensureAlpha()
-    .resize(size, size, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .resize(size, size, { fit: 'contain', background: resizeBackground })
     .png()
     .toFile(resolve(publicDir, name));
 }
