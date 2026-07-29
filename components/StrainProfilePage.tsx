@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Strain, User, StrainPhoto, StrainReview, StrainChatMessage } from '../types';
 import { api } from '../services/supabaseClient';
-import { Sprout, Star, MessageSquare, Image as ImageIcon, Send, Upload, Dna, Atom, Wind, Leaf as LeafIcon, Loader2, Flame, Diamond, XCircle, Tag } from 'lucide-react';
+import { Star, MessageSquare, Image as ImageIcon, Send, Upload, Dna, Atom, Wind, Leaf as LeafIcon, Loader2, Flame, Diamond, XCircle, Tag } from 'lucide-react';
 
 interface StrainProfilePageProps {
   strain: Strain;
@@ -44,18 +44,18 @@ const AddReview: React.FC<{ strainId: string; userId: string; onReviewSaved: (re
     }
     
     return (
-        <div className="bg-[var(--bg-card)] p-4 rounded-lg border border-[var(--border)]">
+        <div className="bg-[var(--bg-card)] p-4 rounded-[1.35rem] border border-[var(--border)] shadow-[var(--shadow-card)]">
             <h4 className="font-bold mb-3">{userReview ? 'Edit Your Review' : 'Leave a Review'}</h4>
-            {error && <p className="text-sm text-red-400 bg-red-500/10 p-2 rounded-md mb-3">{error}</p>}
+            {error && <p className="text-sm text-red-500 bg-red-500/10 p-2 rounded-md mb-3">{error}</p>}
             <div className="flex items-center gap-1 mb-3">
                 {[1,2,3,4,5].map(star => (
                     <button key={star} onClick={() => setRating(star)}>
-                        <Star size={24} className={`transition-colors cursor-pointer ${rating >= star ? 'text-amber-500 fill-current' : 'text-[var(--text-muted)] hover:text-[var(--text-muted)]'}`} />
+                        <Star size={24} className={`transition-colors cursor-pointer ${rating >= star ? 'text-amber-500 fill-current' : 'text-[var(--text-muted)]'}`} />
                     </button>
                 ))}
             </div>
-            <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Share your experience..." className="w-full bg-[var(--bg-input)] rounded p-2 text-sm h-24 border border-[var(--border)] focus:outline-none focus:border-[var(--accent)]" />
-            <button onClick={handleSubmit} disabled={isSubmitting} className="mt-2 w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-bold py-2 rounded-lg disabled:opacity-50 flex items-center justify-center">
+            <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Share your experience..." className="w-full bg-[var(--bg-input)] rounded-2xl p-3 text-sm h-24 border border-[var(--border)] focus:outline-none focus:border-[var(--accent)]" />
+            <button onClick={handleSubmit} disabled={isSubmitting} className="mt-2 w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-bold py-2.5 rounded-full disabled:opacity-50 flex items-center justify-center">
                 {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : (userReview ? 'Update Review' : 'Submit Review')}
             </button>
         </div>
@@ -89,7 +89,6 @@ const UploadPhoto: React.FC<{ strainId: string; userId: string; onPhotoAdded: (p
             const newPhoto = await api.addStrainPhoto(strainId, userId, imageUrl, form, brand);
             if (newPhoto) {
                 onPhotoAdded(newPhoto);
-                // Reset state
                 setFile(null);
                 setPreview(null);
                 setBrand('');
@@ -100,8 +99,8 @@ const UploadPhoto: React.FC<{ strainId: string; userId: string; onPhotoAdded: (p
     
     if (preview) {
         return (
-             <div className="bg-[var(--bg-input)] rounded-lg flex flex-col sm:flex-row gap-4 border-2 border-[var(--accent)] p-4 items-center">
-                <img src={preview} className="w-24 h-24 object-contain rounded-lg bg-black/20" alt="Upload preview" />
+             <div className="bg-[var(--bg-input)] rounded-[1.35rem] flex flex-col sm:flex-row gap-4 border-2 border-[var(--accent)] p-4 items-center">
+                <img src={preview} className="w-24 h-24 object-contain rounded-2xl bg-[var(--bg-card)]" alt="Upload preview" />
                 <div className="flex-1 w-full space-y-3">
                     <input 
                         type="text" 
@@ -114,7 +113,7 @@ const UploadPhoto: React.FC<{ strainId: string; userId: string; onPhotoAdded: (p
                         <button onClick={handleUpload} disabled={isUploading} className="flex-1 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white text-sm font-bold py-2 rounded-full disabled:opacity-50 flex items-center justify-center gap-2">
                             {isUploading ? <Loader2 size={16} className="animate-spin" /> : 'Post'}
                         </button>
-                        <button onClick={() => { setFile(null); setPreview(null); setBrand(''); }} className="flex-shrink-0 bg-gray-600 hover:bg-gray-700 text-white w-9 h-9 flex items-center justify-center rounded-full text-xs">
+                        <button onClick={() => { setFile(null); setPreview(null); setBrand(''); }} className="flex-shrink-0 bg-[var(--text-muted)] hover:bg-[var(--text-secondary)] text-white w-9 h-9 flex items-center justify-center rounded-full text-xs">
                             <XCircle size={18} />
                         </button>
                     </div>
@@ -144,6 +143,9 @@ const StrainProfilePage: React.FC<StrainProfilePageProps> = ({ strain: initialSt
   const [selectedPhoto, setSelectedPhoto] = useState<StrainPhoto | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  const isConcentrate = currentForm === 'CONCENTRATE';
+  const typeKey = (strain.type || 'hybrid').toLowerCase();
+
   useEffect(() => {
     setStrain(initialStrain);
   }, [initialStrain]);
@@ -159,8 +161,10 @@ const StrainProfilePage: React.FC<StrainProfilePageProps> = ({ strain: initialSt
   }, [strain.id, currentForm, user.id]);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatMessages]);
+    if (activeTab === 'chat') {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [chatMessages, activeTab]);
   
   const handleReviewSaved = (savedReview: StrainReview) => {
     setReviews(prevReviews => {
@@ -175,7 +179,6 @@ const StrainProfilePage: React.FC<StrainProfilePageProps> = ({ strain: initialSt
     });
     setUserReview(savedReview);
   };
-
 
   const handleToggleLog = (type: 'SMOKED' | 'DABBED') => {
       setStrain(prevStrain => {
@@ -221,7 +224,7 @@ const StrainProfilePage: React.FC<StrainProfilePageProps> = ({ strain: initialSt
       >
         <Icon size={16} />
         <span>{text}</span>
-        <span className="text-xs bg-[var(--border-strong)] px-1.5 py-0.5 rounded-full">{count}</span>
+        <span className={`text-xs px-1.5 py-0.5 rounded-full ${activeTab === label ? 'bg-[var(--accent-soft)] text-[var(--accent)]' : 'bg-[var(--bg-input)] text-[var(--text-muted)]'}`}>{count}</span>
       </button>
   );
 
@@ -229,13 +232,13 @@ const StrainProfilePage: React.FC<StrainProfilePageProps> = ({ strain: initialSt
     switch (activeTab) {
       case 'photos':
         return <div>
-            <div className="p-4 border-b border-[var(--border)]">
+            <div className="p-4">
                 <UploadPhoto strainId={strain.id} userId={user.id} onPhotoAdded={p => setPhotos(prev => [p, ...prev])} form={currentForm} />
             </div>
-            <div className="grid grid-cols-3 gap-1 p-1">
+            <div className="grid grid-cols-3 gap-2 px-4 pb-4">
                 {photos.map(p => 
                     <div key={p.id} onClick={() => setSelectedPhoto(p)} className="relative group aspect-square cursor-pointer">
-                        <img src={p.image_url} className="w-full h-full object-cover bg-[var(--bg-input)] rounded-lg transition-opacity group-hover:opacity-90" alt={`Photo of ${strain.name} by ${p.user_name}`} />
+                        <img src={p.image_url} className="w-full h-full object-cover bg-[var(--bg-input)] rounded-2xl transition-opacity group-hover:opacity-90" alt={`Photo of ${strain.name} by ${p.user_name}`} />
                         {p.brand && 
                             <div className="absolute bottom-1 left-1 bg-black/70 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full backdrop-blur-sm flex items-center gap-1">
                                 <Tag size={10} />
@@ -245,12 +248,15 @@ const StrainProfilePage: React.FC<StrainProfilePageProps> = ({ strain: initialSt
                     </div>
                 )}
             </div>
+            {photos.length === 0 && (
+              <p className="text-center text-sm text-[var(--text-muted)] pb-8">No photos yet for {isConcentrate ? 'concentrate' : 'flower'}.</p>
+            )}
         </div>;
       case 'reviews':
         return <div className="p-4 space-y-4">
             <AddReview strainId={strain.id} userId={user.id} onReviewSaved={handleReviewSaved} form={currentForm} userReview={userReview} />
             {reviews.map(r => (
-                <div key={r.id} className="bg-[var(--bg-card)] p-3 rounded-lg border border-[var(--border)]">
+                <div key={r.id} className="bg-[var(--bg-card)] p-3 rounded-[1.25rem] border border-[var(--border)] shadow-[var(--shadow-card)]">
                     <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                              <img src={r.user_avatar} className="w-8 h-8 rounded-full" />
@@ -268,11 +274,14 @@ const StrainProfilePage: React.FC<StrainProfilePageProps> = ({ strain: initialSt
             )}
         </div>;
       case 'chat':
-        return <div className="h-full flex flex-col">
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        return <div className="flex flex-col min-h-[320px]">
+            <div className="p-4 space-y-3">
+                {chatMessages.length === 0 && (
+                  <p className="text-center text-sm text-[var(--text-muted)] py-8">No messages yet. Start the conversation.</p>
+                )}
                 {chatMessages.map(m => (
                     <div key={m.id} className={`flex items-start gap-2 ${m.user_id === user.id ? 'justify-end' : ''}`}>
-                         <div className={`p-3 rounded-xl max-w-xs ${m.user_id === user.id ? 'bg-[var(--accent)] text-white rounded-br-none' : 'bg-[var(--bg-card)] rounded-bl-none'}`}>
+                         <div className={`p-3 rounded-xl max-w-xs ${m.user_id === user.id ? 'bg-[var(--accent)] text-white rounded-br-none' : 'bg-[var(--bg-card)] border border-[var(--border)] rounded-bl-none'}`}>
                              {m.user_id !== user.id && <p className="text-xs font-bold text-[var(--accent)] mb-0.5">{m.user_name}</p>}
                              <p className="text-sm break-words">{m.message}</p>
                          </div>
@@ -280,8 +289,8 @@ const StrainProfilePage: React.FC<StrainProfilePageProps> = ({ strain: initialSt
                 ))}
                 <div ref={chatEndRef} />
             </div>
-            <div className="p-2 border-t border-[var(--border)] bg-[var(--bg-main)]">
-                <div className="bg-[var(--bg-input)] rounded-full flex items-center pr-2 border border-[var(--border)] focus-within:border-[var(--accent)] transition-colors">
+            <div className="sticky bottom-20 lg:bottom-4 z-20 p-3 bg-[var(--bg-main)]/95 backdrop-blur-sm border-t border-[var(--border)]">
+                <div className="bg-[var(--bg-card)] rounded-full flex items-center pr-2 border border-[var(--border)] shadow-[var(--shadow-card)] focus-within:border-[var(--accent)] transition-colors">
                     <input type="text" value={newMessage} onChange={e => setNewMessage(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleSendMessage()} placeholder="Join the conversation..." className="flex-1 bg-transparent p-3 focus:outline-none" />
                     <button onClick={handleSendMessage} className="p-2 bg-[var(--accent)] text-white rounded-full hover:scale-110 transition-transform"><Send size={16}/></button>
                 </div>
@@ -290,15 +299,14 @@ const StrainProfilePage: React.FC<StrainProfilePageProps> = ({ strain: initialSt
     }
   };
 
-  const heroTone =
-    (strain.type || '').toLowerCase() === 'sativa' ? 'bg-[var(--sativa-sky)]' :
-    (strain.type || '').toLowerCase() === 'indica' ? 'bg-[var(--indica-blush)]' :
-    'bg-[var(--hybrid-mist)]';
-
   return (
-    <div className="flex flex-col h-full relative pb-20 lg:pb-0">
-      <div className="p-4 border-b border-[var(--border)]">
-        <div className={`${heroTone} rounded-[1.75rem] p-5 mb-4 shadow-[var(--shadow-card)] overflow-hidden relative`}>
+    <div
+      className="strain-profile relative pb-24 lg:pb-8"
+      data-form={isConcentrate ? 'concentrate' : 'flower'}
+      data-type={typeKey}
+    >
+      <div className="p-4">
+        <div className="bg-[var(--form-hero)] rounded-[1.75rem] p-5 mb-4 shadow-[var(--shadow-card)] overflow-hidden relative transition-colors duration-300">
           <div className="flex justify-between items-start gap-4 relative z-10">
               <div>
                   <span className="text-[11px] font-bold uppercase tracking-widest px-3 py-1 rounded-full bg-white/80 text-[var(--accent)]">{strain.type}</span>
@@ -345,21 +353,21 @@ const StrainProfilePage: React.FC<StrainProfilePageProps> = ({ strain: initialSt
                 onClick={() => handleToggleLog('DABBED')}
                 className={`flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-full transition-all border ${
                     strain.user_has_dabbed
-                        ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-700'
-                        : 'bg-[var(--bg-card)] border-[var(--border)] text-[var(--text-muted)] hover:border-cyan-500/50 hover:text-cyan-700'
+                        ? (isConcentrate ? 'bg-[var(--accent-soft)] border-[var(--accent)] text-[var(--accent)]' : 'bg-cyan-500/15 border-cyan-500/40 text-cyan-700')
+                        : 'bg-[var(--bg-card)] border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--accent)]/50 hover:text-[var(--accent)]'
                 }`}
             >
                 <Diamond size={16} /> Dabbed
             </button>
         </div>
 
-        <div className="mt-4 pt-4 space-y-4">
+        <div className="mt-4 pt-2 space-y-4">
             <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-3">
+                <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-3 shadow-[var(--shadow-card)]">
                     <h4 className="font-bold text-[var(--text-muted)] text-xs uppercase flex items-center gap-1 mb-1"><Dna size={12}/> Genetics</h4>
                     <p className="font-semibold">{strain.genetics || 'Unknown'}</p>
                 </div>
-                <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-3">
+                <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-3 shadow-[var(--shadow-card)]">
                     <h4 className="font-bold text-[var(--text-muted)] text-xs uppercase flex items-center gap-1 mb-1"><Atom size={12}/> THC</h4>
                     <p className="font-semibold">{strain.thc_min && strain.thc_max ? `${strain.thc_min}-${strain.thc_max}%` : 'N/A'}</p>
                 </div>
@@ -373,23 +381,36 @@ const StrainProfilePage: React.FC<StrainProfilePageProps> = ({ strain: initialSt
             <div>
                 <h4 className="font-bold text-[var(--text-muted)] text-xs uppercase flex items-center gap-1 mb-2"><LeafIcon size={12}/> Flavors</h4>
                 <div className="flex flex-wrap gap-2">
-                    {(strain.flavors || []).map(f => <span key={f} className="text-xs bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full capitalize font-medium">{f}</span>)}
+                    {(strain.flavors || []).map(f => (
+                      <span
+                        key={f}
+                        className={`text-xs px-2.5 py-1 rounded-full capitalize font-medium ${
+                          isConcentrate
+                            ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
+                            : 'bg-emerald-100 text-emerald-800'
+                        }`}
+                      >
+                        {f}
+                      </span>
+                    ))}
                 </div>
             </div>
         </div>
       </div>
-      <div className="border-b border-[var(--border)] flex">
+
+      <div className="border-y border-[var(--border)] flex sticky top-0 z-10 bg-[var(--bg-main)]/95 backdrop-blur-md">
         <TabButton label="photos" text="Photos" icon={ImageIcon} count={photos.length}/>
         <TabButton label="reviews" text="Reviews" icon={Star} count={reviews.length}/>
         <TabButton label="chat" text="Live Chat" icon={MessageSquare} count={chatMessages.length}/>
       </div>
-      <div className="flex-1 overflow-y-auto">
+
+      <div>
         {renderContent()}
       </div>
 
       {selectedPhoto && (
         <div className="fixed inset-0 z-[100] bg-black/95 flex flex-col items-center justify-center p-4 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setSelectedPhoto(null)}>
-            <button onClick={() => setSelectedPhoto(null)} className="absolute top-4 right-4 p-2 text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors z-[101]">
+            <button onClick={() => setSelectedPhoto(null)} className="absolute top-4 right-4 p-2 text-white/60 hover:text-white transition-colors z-[101]">
                 <XCircle size={32} />
             </button>
             
@@ -400,11 +421,11 @@ const StrainProfilePage: React.FC<StrainProfilePageProps> = ({ strain: initialSt
                     className="max-h-[85vh] max-w-full w-auto object-contain rounded-lg shadow-2xl" 
                 />
                 
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 backdrop-blur-md border border-[var(--border)] p-2 pr-4 rounded-full flex items-center gap-3 shadow-lg">
-                    <img src={selectedPhoto.user_avatar} className="w-8 h-8 rounded-full border border-[var(--border)]" alt={selectedPhoto.user_name} />
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 backdrop-blur-md border border-white/10 p-2 pr-4 rounded-full flex items-center gap-3 shadow-lg">
+                    <img src={selectedPhoto.user_avatar} className="w-8 h-8 rounded-full border border-white/20" alt={selectedPhoto.user_name} />
                     <div className="flex flex-col">
-                        <span className="text-xs font-bold text-[var(--text-main)]">{selectedPhoto.user_name}</span>
-                         <span className="text-[10px] text-[var(--text-muted)]">{new Date(selectedPhoto.created_at).toLocaleDateString()} {selectedPhoto.brand && `• ${selectedPhoto.brand}`}</span>
+                        <span className="text-xs font-bold text-white">{selectedPhoto.user_name}</span>
+                         <span className="text-[10px] text-white/60">{new Date(selectedPhoto.created_at).toLocaleDateString()} {selectedPhoto.brand && `• ${selectedPhoto.brand}`}</span>
                     </div>
                 </div>
             </div>

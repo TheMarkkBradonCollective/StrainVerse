@@ -128,7 +128,7 @@ MatchIt is hidden from sidebar and bottom nav unless `userAge >= 21`.
 
 #### Strain profile
 
-- **Form switcher** — `FLOWER` vs `CONCENTRATE` (separate photos, reviews, chat per form)
+- **Form switcher** — `FLOWER` vs `CONCENTRATE` (separate photos, reviews, chat per form). Concentrate mode uses a gold accent theme; the profile is a single continuous scroll.
 - **Stats** — THC/CBD ranges, genetics, effects, flavors, description
 - **User logging** — toggle **Smoked** / **Dabbed** (persisted in `user_strain_log`)
 - **Tabs:**

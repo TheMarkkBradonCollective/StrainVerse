@@ -38,6 +38,9 @@
         --sativa-sky: #C8E6F5;
         --indica-blush: #F3D9C8;
         --hybrid-mist: #D8F0E4;
+        --concentrate-gold: #C9A227;
+        --concentrate-gold-deep: #9A7B1A;
+        --concentrate-mist: #F3E7C4;
         --sunset-hybrid: #E07A5F;
         --indica-purple: #6B5B8A;
 
@@ -45,6 +48,7 @@
         --accent-hover: #147848;
         --accent-soft: rgba(27, 92, 58, 0.12);
         --accent-light: rgba(27, 92, 58, 0.08);
+        --form-hero: var(--hybrid-mist);
 
         --font-heading: 'Syne', sans-serif;
         --font-body: 'Outfit', sans-serif;
@@ -61,6 +65,35 @@
         --gradient-hero: radial-gradient(ellipse at 20% 0%, rgba(123, 207, 160, 0.35) 0%, transparent 55%),
                           radial-gradient(ellipse at 90% 10%, rgba(200, 230, 245, 0.45) 0%, transparent 45%),
                           radial-gradient(ellipse at 70% 90%, rgba(243, 217, 200, 0.35) 0%, transparent 50%);
+      }
+
+      /* Strain profile — Concentrate mode shifts accents to gold */
+      .strain-profile[data-form="concentrate"] {
+        --accent: var(--concentrate-gold-deep);
+        --accent-hover: #7A6110;
+        --accent-soft: rgba(201, 162, 39, 0.18);
+        --accent-light: rgba(201, 162, 39, 0.1);
+        --shadow-color: rgba(154, 123, 26, 0.28);
+        --form-hero: var(--concentrate-mist);
+        --bg-input: #F5EDD8;
+        --border: #E5D6A8;
+        --border-strong: #C9B56A;
+      }
+
+      .strain-profile[data-form="flower"] {
+        --form-hero: var(--hybrid-mist);
+      }
+
+      .strain-profile[data-form="flower"][data-type="sativa"] {
+        --form-hero: var(--sativa-sky);
+      }
+
+      .strain-profile[data-form="flower"][data-type="indica"] {
+        --form-hero: var(--indica-blush);
+      }
+
+      .strain-profile[data-form="flower"][data-type="hybrid"] {
+        --form-hero: var(--hybrid-mist);
       }
 
       @keyframes drift-soft {
