@@ -15,6 +15,7 @@ import SocialSeshDirectory from './components/SocialSeshDirectory';
 import SocialSeshView from './components/SocialSeshView';
 import CreateStoryModal from './components/CreateStoryModal';
 import InstallPrompt from './components/InstallPrompt';
+import { getVisibleNavItems } from './navConfig';
 
 
 // --- VIEW CONFIGURATION ---
@@ -432,18 +433,7 @@ const App: React.FC = () => {
     };
     
     const BottomNavBar: React.FC<{ currentView: AppView, setView: (view: AppView) => void, userAge: number | null }> = ({ currentView, setView, userAge }) => {
-        const navItems = Object.values(AppView)
-            .map(view => ({
-                view,
-                ...viewConfig[view],
-                label: viewConfig[view].title,
-            }))
-            .filter(item => {
-                if (item.ageGate) {
-                    return userAge !== null && userAge >= 21;
-                }
-                return true;
-            });
+        const navItems = getVisibleNavItems(userAge);
 
         return (
             <nav className="fixed bottom-3 left-3 right-3 h-[4.25rem] bg-[var(--bg-card)]/95 backdrop-blur-xl border border-[var(--border)] rounded-[1.75rem] flex justify-around items-center z-40 lg:hidden shadow-[var(--shadow-soft)]">
