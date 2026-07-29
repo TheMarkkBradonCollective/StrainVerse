@@ -5,7 +5,7 @@ interface StrainVerseAppIconProps {
   className?: string;
 }
 
-/** App mark: five-hand cannabis toast (bong, joint, pipe, pen, rig) — SpiritsVerse style. */
+/** App mark: cannabis toast — bong, joint, pipe, dab rig + dab tool (no wax pen). */
 const StrainVerseAppIcon: React.FC<StrainVerseAppIconProps> = ({ size = 24, className = '' }) => (
   <img
     src="/pwa-192.png"
