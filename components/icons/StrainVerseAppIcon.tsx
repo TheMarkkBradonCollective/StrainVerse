@@ -5,10 +5,10 @@ interface StrainVerseAppIconProps {
   className?: string;
 }
 
-/** App mark: cannabis leaf on black with smoke (matches public/logo.svg). */
+/** App mark: hands holding buds on black with smoke (matches public/logo-master.png). */
 const StrainVerseAppIcon: React.FC<StrainVerseAppIconProps> = ({ size = 24, className = '' }) => (
   <img
-    src="/logo.svg"
+    src="/pwa-192.png"
     alt=""
     width={size}
     height={size}
