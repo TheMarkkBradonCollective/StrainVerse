@@ -167,37 +167,38 @@ MatchIt is hidden from sidebar and bottom nav unless `userAge >= 21`.
 
 ---
 
-### 4.3 MatchIt — Location-Based Discovery
+### 4.3 MatchIt — Nearby People Discovery
 
 **Component:** `MatchIt.tsx`
 
+MatchIt is a **Grindr-style people feed**: nearby adults who want to smoke, not a post feed.
+
 **Requirements:** User must be **21+** and have **city + state** set in profile.
+
+#### Presence (“Looking to smoke”)
+
+- Profile toggle `show_in_matchit` — when on, you appear in others’ Nearby feed
+- Optional status: looking-for intent (`matchit_looking_for`)
+- SQL migration: `sql/matchit-people-feed.sql`
 
 #### Tabs
 
-1. **Find Vibe** — feed of MatchIt posts in user's city/state
-2. **My Matches** — `MATCH` type groups where user is a member
+1. **Nearby** — grid of people in your city/state (sorted by distance when lat/lng available)
+2. **Matches** — `MATCH` type groups where user is a member
 
-#### Match cards
+#### Person cards
 
-- Expiring posts (`match_expires_at`) with live countdown
-- Metadata: looking-for intent, strain, mood, image
-- **Send Vibe** modal — TAP (casual) or SPARK (high interest)
-- **Incoming vibes** — post owner can Match or Decline
+- Large photo tiles with distance, looking-for status, smoking preference
+- **Send Vibe** — TAP or SPARK to that person (no post required)
+- **Incoming vibes** — Match or Decline
 - **Mutual SPARK** — auto-creates private match group chat
+- Report / Block
 
 #### Safety
 
-- **Report** — categories: Suspicious activity, Underage, Spam, Harassment, Drugs for sale, Fake/catfishing
-- **Block user** — hides their posts from MatchIt feed
-
-#### Post creation
-
-- **Show in MatchIt** switch — toggles whether the post appears on the MatchIt feed (`is_matchit`)
-- Defaults **on** when composing from MatchIt, **off** from HerbHub
-- When on: duration (30 min, 1 hr, 3 hr, 24 hr) and looking-for options; `visibility = LOCAL_LOUD`
-- Looking-for options: Match to smoke, Sesh later today, Looking for new friends, Looking for people to try strain with
-- Creates post with `is_matchit = true` only when the switch is on
+- Age filter (21+) on visible people
+- Blocked users hidden both ways
+- Report categories: Suspicious activity, Underage, Spam, Harassment, Drugs for sale, Fake/catfishing
 
 ---
 
@@ -367,7 +368,10 @@ All data access goes through `services/supabaseClient.ts` exports: `supabase`, `
 
 | Method | Description |
 |--------|-------------|
-| `getPosts(viewType, user?, groupId?)` | HIGHLINE, MATCHIT, FRIENDS, GROUP feeds |
+| `getPosts(viewType, user?, groupId?)` | HIGHLINE, FRIENDS, GROUP feeds |
+| `getMatchItPeople(user)` | Nearby people with MatchIt presence on |
+| `setMatchItPresence(userId, show, lookingFor?)` | Toggle Looking to smoke |
+| `sendVibe(senderId, receiverId, …)` | Person-to-person TAP/SPARK |
 | `getPostsForUser(userId)` | User's own posts |
 | `createPost(...)` | New post with optional image, geo, MatchIt meta |
 | `toggleReaction(postId, userId, type)` | Add/change/remove reaction |
@@ -585,7 +589,7 @@ Profile layout uses: `.ys-profile-root`, `.ys-header`, `.ys-avatar`, `.ys-bio`, 
 - Group chat does not subscribe to Supabase Realtime (refresh on send only)
 - Strain chat does not use Realtime subscription
 - No friend request / accept UI despite `relationships` table
-- MatchIt post visibility uses `LOCAL_LOUD` but feed filters on `is_matchit` flag
+- MatchIt is a people presence feed (`show_in_matchit`), not post-based
 
 ---
 

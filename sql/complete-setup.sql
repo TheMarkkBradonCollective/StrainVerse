@@ -530,7 +530,7 @@ END$$;
 -- Create interactions table
 create table if not exists "StrainVerse".matchit_interactions (
     id uuid primary key default gen_random_uuid(),
-    post_id uuid references "StrainVerse".posts(id) on delete cascade not null,
+    post_id uuid references "StrainVerse".posts(id) on delete cascade,
     sender_id uuid references "StrainVerse".profiles(id) on delete cascade not null,
     receiver_id uuid references "StrainVerse".profiles(id) on delete cascade not null,
     message text,
@@ -546,6 +546,12 @@ using (auth.uid() = sender_id or auth.uid() = receiver_id);
 
 -- Add group_id to matchit_interactions to link to the created chat
 alter table "StrainVerse".matchit_interactions add column if not exists group_id text references "StrainVerse".groups(id) on delete set null;
+
+-- Person-to-person vibes (no post required)
+alter table "StrainVerse".matchit_interactions alter column post_id drop not null;
+create unique index if not exists matchit_person_vibe_uidx
+  on "StrainVerse".matchit_interactions (sender_id, receiver_id)
+  where post_id is null;
 
 -- TABLE MODIFICATIONS --
 
@@ -584,6 +590,8 @@ alter table "StrainVerse".profiles add column if not exists custom_js text;
 alter table "StrainVerse".profiles add column if not exists date_of_birth date;
 alter table "StrainVerse".profiles add column if not exists status text default 'active';
 alter table "StrainVerse".profiles add column if not exists role "StrainVerse"."user_role" default 'User' not null;
+alter table "StrainVerse".profiles add column if not exists show_in_matchit boolean default false;
+alter table "StrainVerse".profiles add column if not exists matchit_looking_for text;
 
 
 -- Add columns to groups for customization
