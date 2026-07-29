@@ -675,11 +675,11 @@ npm run preview
 
 ### MatchIt match flow
 
-1. User 21+ with city/state posts MatchIt card (expires in N hours)
-2. Another local user sends SPARK via Vibe modal
-3. If mutual SPARK → match group auto-created → success modal → open chat
-4. If TAP only → post owner sees incoming vibe → Match or Decline
-5. Matched users appear under **My Matches** tab
+1. User 21+ with city/state flips **Looking to smoke** on (optionally sets looking-for status)
+2. Nearby people with presence on appear in the **Nearby** grid (by city/state, sorted by distance)
+3. Send SPARK via Vibe modal → if mutual SPARK → match group auto-created → open chat
+4. TAP vibes → recipient sees incoming vibe → Match or Decline
+5. Matched users appear under **Matches** tab
 
 ### Strain enthusiast flow
 
