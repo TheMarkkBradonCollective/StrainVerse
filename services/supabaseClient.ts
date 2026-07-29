@@ -126,10 +126,10 @@ export const formatSupabaseError = (error: { message?: string; code?: string } |
     msg.toLowerCase().includes('could not query the database') ||
     msg.toLowerCase().includes('invalid schema')
   ) {
-    return 'StrainVerse database not set up. In Supabase SQL Editor run the full sql/complete-setup.sql file (required after a wipe), then reload the app.';
+    return 'StrainVerse database not set up. In Supabase SQL Editor run the full sql/complete-schema.sql file (required after a wipe), then reload the app.';
   }
   if (msg.toLowerCase().includes('permission denied') || error.code === '42501') {
-    return 'Database permission error. Re-run sql/complete-setup.sql in Supabase.';
+    return 'Database permission error. Re-run sql/complete-schema.sql in Supabase.';
   }
   return msg || 'Database request failed';
 };

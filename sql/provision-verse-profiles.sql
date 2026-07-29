@@ -1,6 +1,7 @@
 -- Provision StrainVerse profiles for Verse users who signed up on another app
 -- (e.g. SpiritsVerse or Cookbook) or whose StrainVerse profile failed to create.
--- Run after sql/complete-setup.sql or sql/bootstrap-strainverse.sql
+-- DEPRECATED: merged into sql/complete-schema.sql — run that file instead.
+-- Run after sql/complete-schema.sql or sql/bootstrap-strainverse.sql
 
 do $$
 declare

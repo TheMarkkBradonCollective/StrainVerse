@@ -7,7 +7,7 @@
 -- IRREVERSIBLE. After this you are starting from zero.
 --
 -- After wipe, re-run each app's setup SQL:
---   StrainVerse  -> sql/complete-setup.sql
+--   StrainVerse  -> sql/complete-schema.sql
 --   Cookbook     -> that repo's complete setup script
 --   SpiritsVerse -> that repo's complete setup script
 --
@@ -137,4 +137,4 @@ from pg_namespace
 where nspname in ('StrainVerse', 'Cookbook', 'SpiritsVerse', 'strain', 'strainverse')
 order by nspname;
 
--- Next step: run sql/complete-setup.sql to rebuild StrainVerse from scratch.
+-- Next step: run sql/complete-schema.sql to rebuild StrainVerse from scratch.

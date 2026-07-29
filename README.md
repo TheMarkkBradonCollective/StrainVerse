@@ -25,4 +25,4 @@ Cannabis-culture social network and community-sourced strain encyclopedia. Part 
 
 ## Database setup
 
-Run `sql/complete-setup.sql` in the Supabase SQL Editor for a fresh `StrainVerse` schema. See `SPEC.md` for full documentation.
+Run `sql/complete-schema.sql` in the Supabase SQL Editor whenever you pull updates (safe to re-run). See `SPEC.md` for full documentation.

@@ -2,8 +2,9 @@
 -- POST-WIPE BOOTSTRAP — fixes "Invalid schema: StrainVerse" on sign-up
 -- =============================================================================
 --
--- Run this if you ran sql/wipe-verse.sql and have NOT run complete-setup yet.
--- For the full app (all tables, strains, storage), run sql/complete-setup.sql instead.
+-- Run this if you ran sql/wipe-verse.sql and have NOT run complete-schema yet.
+-- DEPRECATED: merged into sql/complete-schema.sql — run that file instead.
+-- For the full app (all tables, strains, storage), run sql/complete-schema.sql instead.
 -- This minimal script only creates schema + profiles so auth/sign-up works.
 --
 -- After this: run sql/seed-strains.sql for the strain encyclopedia.
@@ -12,7 +13,7 @@
 create extension if not exists "pgcrypto";
 create schema if not exists "StrainVerse";
 
--- PostgREST helpers (skip if already created by complete-setup)
+-- PostgREST helpers (skip if already created by complete-schema)
 drop function if exists public.repair_postgrest_schemas(text);
 create or replace function public.repair_postgrest_schemas(required_schema text default 'StrainVerse')
 returns text

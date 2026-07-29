@@ -1,11 +1,11 @@
 -- QUICK FIX: "could not query the database for the schema cache" / can't log in
 -- Run this ENTIRE file in Supabase SQL Editor (creates functions, then runs them).
 --
--- After wipe with sql/wipe-verse.sql: run sql/complete-setup.sql (or sql/bootstrap-strainverse.sql for sign-up only)
+-- After wipe with sql/wipe-verse.sql: run sql/complete-schema.sql (or sql/bootstrap-strainverse.sql for sign-up only)
 -- Do NOT run only: select repair_postgrest_schemas('StrainVerse');
 -- That fails until this script creates the function first.
 --
--- For full tables/RLS/storage: run sql/complete-setup.sql instead.
+-- For full tables/RLS/storage: run sql/complete-schema.sql instead.
 
 create schema if not exists "StrainVerse";
 
@@ -70,7 +70,7 @@ $$;
 
 grant execute on function public.repair_postgrest_schemas(text) to authenticated, service_role;
 
--- Minimal register_app_schema (same behavior as complete-setup.sql)
+-- Minimal register_app_schema (same behavior as complete-schema.sql)
 drop function if exists public.register_app_schema(text);
 create or replace function public.register_app_schema(app_schema text)
 returns text

@@ -1,5 +1,6 @@
 -- MatchIt people feed: presence on profiles + person-to-person vibes
--- Run in Supabase SQL Editor after complete-setup.sql (safe to re-run)
+-- DEPRECATED: merged into sql/complete-schema.sql — run that file instead.
+-- Run in Supabase SQL Editor after complete-schema.sql (safe to re-run)
 
 alter table "StrainVerse".profiles
   add column if not exists show_in_matchit boolean default false;
