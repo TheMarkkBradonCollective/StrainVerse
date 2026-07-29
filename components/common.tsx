@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Story } from '../types';
 import { Camera, XCircle } from 'lucide-react';
 
@@ -14,6 +14,53 @@ export const SkeletonPost: React.FC = () => (
         </div>
     </div>
 );
+
+export const FullscreenImage: React.FC<{ src: string; alt?: string; className?: string }> = ({ src, alt = 'Post image', className = '' }) => {
+    const [isOpen, setIsOpen] = useState(false);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleKey = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setIsOpen(false);
+        };
+        window.addEventListener('keydown', handleKey);
+        return () => window.removeEventListener('keydown', handleKey);
+    }, [isOpen]);
+
+    return (
+        <>
+            <button
+                type="button"
+                onClick={() => setIsOpen(true)}
+                className="block w-full text-left"
+                aria-label="View image full screen"
+            >
+                <img src={src} alt={alt} className={`${className} cursor-zoom-in`} />
+            </button>
+            {isOpen && (
+                <div
+                    className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4"
+                    onClick={() => setIsOpen(false)}
+                >
+                    <button
+                        type="button"
+                        onClick={() => setIsOpen(false)}
+                        className="absolute top-4 right-4 p-2 text-white/80 hover:text-white rounded-full hover:bg-white/10 transition-colors"
+                        aria-label="Close full screen image"
+                    >
+                        <XCircle size={28} />
+                    </button>
+                    <img
+                        src={src}
+                        alt={alt}
+                        className="max-w-full max-h-full object-contain"
+                        onClick={event => event.stopPropagation()}
+                    />
+                </div>
+            )}
+        </>
+    );
+};
 
 export const StrainStories: React.FC<{stories: Story[], onAddStoryClick?: () => void}> = ({ stories, onAddStoryClick }) => {
     const [activeStory, setActiveStory] = useState<Story | null>(null);

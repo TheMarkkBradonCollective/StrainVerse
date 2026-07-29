@@ -4,6 +4,7 @@ import { User, Post, Strain, ReactionType } from '../types';
 import { MessageSquare, Heart, Share2, ThumbsDown, Flame, FileText, Users, MapPin, Cigarette, Leaf as LeafIcon, Settings, ThumbsUp, Trash2 } from 'lucide-react';
 import ProfileSettingsModal from './ProfileSettingsModal';
 import { api } from '../services/supabaseClient';
+import { FullscreenImage } from './common';
 
 const DEFAULT_PROFILE_CSS = `.ys-profile-root {
   background: transparent;
@@ -222,7 +223,11 @@ const ProfileCanvas: React.FC<ProfileCanvasProps> = ({ user, posts, isOwner, fri
                         </div>
                         <p className="mb-4 leading-relaxed whitespace-pre-wrap">{post.content}</p>
                         {post.image && (
-                            <img src={post.image} alt="Post content" className="w-full rounded-lg mb-4 object-cover max-h-[400px]" />
+                            <FullscreenImage
+                                src={post.image}
+                                alt={`Post by ${post.userName}`}
+                                className="w-full rounded-lg mb-4 object-cover max-h-[400px]"
+                            />
                         )}
                         <div className="flex items-center gap-6 pt-4 border-t border-[var(--border)]">
                             <div className="flex gap-4">

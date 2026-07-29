@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Post, PostVisibility, ReactionType, Story, User, PostComment } from '../types';
 import { Send, Image as ImageIcon, XCircle, Music, Leaf, Rocket, ThumbsDown, HelpCircle, Heart, Plus, Wand2, Flame, MapPin, ThumbsUp, MessageSquare, Trash2 } from 'lucide-react';
 import CreatePostModal from './CreatePostModal';
-import { StrainStories, SkeletonPost } from './common';
+import { StrainStories, SkeletonPost, FullscreenImage } from './common';
 import { api } from '../services/supabaseClient';
 
 
@@ -114,7 +114,13 @@ const HighlineFeed: React.FC<{ user: User, posts: Post[], onReaction: (postId: s
                                     )}
                                 </div>
                                 <p className="text-[var(--text-main)] whitespace-pre-wrap mt-1 leading-relaxed">{post.content}</p>
-                                {post.image && <img src={post.image} className="mt-3 rounded-[1.25rem] border border-[var(--border)] max-h-96 w-full object-cover" />}
+                                {post.image && (
+                                    <FullscreenImage
+                                        src={post.image}
+                                        alt={`Post by ${post.userName}`}
+                                        className="mt-3 rounded-[1.25rem] border border-[var(--border)] max-h-96 w-full object-cover"
+                                    />
+                                )}
                                 
                                 {(post.strain || post.highLevel || post.soundtrack) && (
                                     <div className="mt-3 bg-[var(--bg-input)] rounded-2xl p-2.5 flex items-center gap-4 text-xs">
