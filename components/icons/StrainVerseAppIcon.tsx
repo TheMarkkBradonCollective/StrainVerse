@@ -5,7 +5,7 @@ interface StrainVerseAppIconProps {
   className?: string;
 }
 
-/** App mark: lab jar + plant in gloved hands (public/logo-master.png). */
+/** App mark: transparent hands + buds + smoke (public/logo-master.png). */
 const StrainVerseAppIcon: React.FC<StrainVerseAppIconProps> = ({ size = 24, className = '' }) => (
   <img
     src="/pwa-192.png"
