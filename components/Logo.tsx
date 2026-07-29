@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sprout } from 'lucide-react';
+import CannabisLeafIcon from './icons/CannabisLeafIcon';
 
 type LogoSize = 'sm' | 'md' | 'lg' | 'xl';
 
@@ -19,10 +19,10 @@ const markBox: Record<LogoSize, string> = {
 
 export const LogoMark: React.FC<{ size?: LogoSize; className?: string }> = ({ size = 'md', className = '' }) => (
   <span
-    className={`${markBox[size]} inline-flex items-center justify-center bg-[var(--accent)] text-white shadow-[var(--shadow-card)] flex-shrink-0 ${className}`}
+    className={`${markBox[size]} inline-flex items-center justify-center bg-[#0a0a0a] text-[#4ADE80] shadow-[var(--shadow-card)] flex-shrink-0 ${className}`}
     aria-hidden="true"
   >
-    <Sprout size={iconSizes[size] * 0.55} strokeWidth={2.4} />
+    <CannabisLeafIcon size={iconSizes[size] * 0.62} strokeWidth={2.1} />
   </span>
 );
 
