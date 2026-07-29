@@ -193,9 +193,11 @@ MatchIt is hidden from sidebar and bottom nav unless `userAge >= 21`.
 
 #### Post creation
 
-- Duration: 30 min, 1 hr, 3 hr, 24 hr
+- **Show in MatchIt** switch — toggles whether the post appears on the MatchIt feed (`is_matchit`)
+- Defaults **on** when composing from MatchIt, **off** from HerbHub
+- When on: duration (30 min, 1 hr, 3 hr, 24 hr) and looking-for options; `visibility = LOCAL_LOUD`
 - Looking-for options: Match to smoke, Sesh later today, Looking for new friends, Looking for people to try strain with
-- Creates post with `is_matchit = true`, `visibility = LOCAL_LOUD`
+- Creates post with `is_matchit = true` only when the switch is on
 
 ---
 
