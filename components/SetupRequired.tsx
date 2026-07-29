@@ -17,7 +17,7 @@ const SetupRequired: React.FC = () => {
         </div>
         <p className="text-xs flex items-start gap-2 justify-center text-left" style={{ color: 'var(--text-muted)' }}>
           <AlertTriangle size={14} className="mt-0.5 flex-shrink-0 text-yellow-500" />
-          Copy <code className="text-white/80">.env.example</code> to <code className="text-white/80">.env.local</code>, fill in your Supabase credentials, then restart the dev server.
+          Copy <code className="text-[var(--text-secondary)]">.env.example</code> to <code className="text-[var(--text-secondary)]">.env.local</code>, fill in your Supabase credentials, then restart the dev server.
         </p>
       </div>
     </div>

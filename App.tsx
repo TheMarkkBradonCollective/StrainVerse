@@ -96,20 +96,20 @@ const RightSidebar: React.FC<{ user: User }> = ({ user }) => {
     }, []);
 
     return (
-    <aside className="w-80 h-screen sticky top-0 border-l border-[var(--border)] p-6 hidden xl:flex flex-col gap-6">
-       <div className="bg-[var(--bg-card)] border border-[var(--border)] p-4 rounded-xl">
-            <h3 className="font-bold text-lg mb-4 text-[var(--accent)]">Stoner Wisdom</h3>
-            <div className="text-sm text-[var(--text-muted)] italic flex gap-3">
-                <Quote size={20} className="text-[var(--accent)]/50 flex-shrink-0" />
+    <aside className="w-80 h-screen sticky top-0 border-l border-[var(--border)] p-6 hidden xl:flex flex-col gap-6 bg-[var(--bg-card)]/50 backdrop-blur-xl">
+       <div className="bg-[var(--hybrid-mist)] border border-transparent p-5 rounded-[1.5rem] shadow-[var(--shadow-card)]">
+            <h3 className="font-extrabold text-lg mb-4 text-[var(--accent)]">Stoner Wisdom</h3>
+            <div className="text-sm text-[var(--text-secondary)] italic flex gap-3 leading-relaxed">
+                <Quote size={20} className="text-[var(--accent)]/40 flex-shrink-0" />
                 {vibe}
             </div>
        </div>
-       <div className="bg-[var(--bg-card)] border border-[var(--border)] p-4 rounded-xl">
-            <h3 className="font-bold text-lg mb-4 text-purple-400">Fav Strains</h3>
+       <div className="bg-[var(--bg-card)] border border-[var(--border)] p-5 rounded-[1.5rem] shadow-[var(--shadow-card)]">
+            <h3 className="font-extrabold text-lg mb-4 text-[var(--text-main)]">Fav Strains</h3>
             <div className="flex flex-wrap gap-2">
                 {(user.favStrains && user.favStrains.length > 0) ? (
                     user.favStrains.map(strain => (
-                        <span key={strain} className="bg-[var(--bg-input)] text-xs font-bold px-2 py-1 rounded">{strain}</span>
+                        <span key={strain} className="bg-[var(--bg-input)] text-xs font-bold px-3 py-1.5 rounded-full text-[var(--text-secondary)]">{strain}</span>
                     ))
                 ) : (
                     <p className="text-xs text-[var(--text-muted)]">No favorite strains set yet.</p>
@@ -122,17 +122,17 @@ const RightSidebar: React.FC<{ user: User }> = ({ user }) => {
 
 const Header: React.FC<{ title: string, onBack?: () => void, currentView: AppView }> = ({ title, onBack, currentView }) => {
     return (
-        <header className="p-4 border-b border-[var(--border)] sticky top-0 bg-[var(--bg-main)]/80 backdrop-blur-sm z-10 flex items-center justify-center">
+        <header className="p-4 border-b border-[var(--border)] sticky top-0 bg-[var(--bg-main)]/85 backdrop-blur-md z-10 flex items-center justify-center">
             {onBack && (
-                <button onClick={onBack} className="absolute left-4 p-2 hover:bg-[var(--bg-hover)] rounded-full">
-                    <ArrowLeft size={20} />
+                <button onClick={onBack} className="absolute left-4 p-2.5 hover:bg-[var(--bg-card)] rounded-full border border-[var(--border)] shadow-sm transition-colors">
+                    <ArrowLeft size={18} />
                 </button>
             )}
-            <h1 className="text-center font-bold text-lg">{title}</h1>
+            <h1 className="text-center font-extrabold text-lg tracking-tight text-[var(--text-main)]">{title}</h1>
             {currentView === AppView.HERBHUB && (
                 <div className="absolute right-4">
-                    <button className="p-2 text-[var(--text-muted)] hover:text-white hover:bg-[var(--bg-hover)] rounded-full transition-colors">
-                        <Filter size={20} />
+                    <button className="p-2.5 text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-card)] rounded-full border border-transparent hover:border-[var(--border)] transition-colors">
+                        <Filter size={18} />
                     </button>
                 </div>
             )}
@@ -425,10 +425,12 @@ const App: React.FC = () => {
             });
 
         return (
-            <nav className="fixed bottom-0 left-0 right-0 h-16 bg-[var(--bg-main)]/80 backdrop-blur-xl border-t border-[var(--border)] flex justify-around items-center z-40 lg:hidden">
+            <nav className="fixed bottom-3 left-3 right-3 h-[4.25rem] bg-[var(--bg-card)]/95 backdrop-blur-xl border border-[var(--border)] rounded-[1.75rem] flex justify-around items-center z-40 lg:hidden shadow-[var(--shadow-soft)]">
                 {navItems.map(item => (
-                    <button key={item.view} onClick={() => setView(item.view)} className={`flex flex-col items-center gap-1 transition-all w-full ${currentView === item.view ? 'text-[var(--accent)]' : 'text-gray-500'}`}>
-                        <item.icon size={24} />
+                    <button key={item.view} onClick={() => setView(item.view)} className={`flex flex-col items-center gap-0.5 transition-all w-full ${currentView === item.view ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'}`}>
+                        <span className={`p-1.5 rounded-2xl transition-colors ${currentView === item.view ? 'bg-[var(--accent-soft)]' : ''}`}>
+                          <item.icon size={22} strokeWidth={currentView === item.view ? 2.5 : 2} />
+                        </span>
                         <span className="text-[10px] font-bold">{item.label}</span>
                     </button>
                 ))}
@@ -510,7 +512,7 @@ const App: React.FC = () => {
     }
 
     return (
-        <div className="bg-[var(--bg-main)] text-white font-sans">
+        <div className="bg-[var(--bg-main)] text-[var(--text-main)] font-sans min-h-screen">
              {isCreateStoryModalOpen && <CreateStoryModal onClose={() => setIsCreateStoryModalOpen(false)} onPost={handleCreateStory} />}
 
             <div className="flex max-w-[1920px] mx-auto">

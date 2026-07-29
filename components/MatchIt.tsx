@@ -64,7 +64,7 @@ const ReportModal: React.FC<{ post: Post, user: User, onClose: () => void, onRep
                     <p className="text-sm text-[var(--text-muted)]">Select a reason for reporting this post by <span className="font-bold text-[var(--text-secondary)]">{post.userName}</span>. This will be sent to moderators for review.</p>
                     <div className="grid grid-cols-2 gap-2">
                         {categories.map(cat => (
-                            <button key={cat} onClick={() => setSelectedCategory(cat)} className={`p-2 text-sm text-left rounded-lg border transition-colors ${selectedCategory === cat ? 'bg-red-500/20 border-red-500 text-white' : 'border-[var(--border)] hover:bg-[var(--bg-hover)]'}`}>
+                            <button key={cat} onClick={() => setSelectedCategory(cat)} className={`p-2 text-sm text-left rounded-lg border transition-colors ${selectedCategory === cat ? 'bg-red-500/15 border-red-500 text-red-700' : 'border-[var(--border)] hover:bg-[var(--bg-hover)]'}`}>
                                 {cat}
                             </button>
                         ))}
@@ -86,7 +86,7 @@ const MatchSuccessModal: React.FC<{ info: {group: Group, otherUser: {name: strin
         <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm" onClick={onClose}>
             <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl w-full max-w-sm flex flex-col items-center text-center p-8 shadow-2xl shadow-[var(--shadow-color)] relative" onClick={e => e.stopPropagation()}>
                 <Sparkles size={48} className="text-orange-400 mb-4 animate-pulse" />
-                <h2 className="text-2xl font-black text-white">The vibes connected!</h2>
+                <h2 className="text-2xl font-extrabold text-[var(--text-main)]">The vibes connected!</h2>
                 <p className="text-[var(--text-muted)] mt-2">You and {info.otherUser.name} sparked a Sesh. You can now chat privately.</p>
                 <div className="my-6">
                     <img src={info.otherUser.avatar} className="w-24 h-24 rounded-full border-4 border-[var(--accent)] shadow-lg" alt={info.otherUser.name} />
@@ -94,7 +94,7 @@ const MatchSuccessModal: React.FC<{ info: {group: Group, otherUser: {name: strin
                 <button onClick={() => onGoToSesh(info.group.id)} className="w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-bold py-3 px-4 rounded-lg">
                     Go to Sesh
                 </button>
-                 <button onClick={onClose} className="mt-3 text-sm text-[var(--text-muted)] hover:text-white">
+                 <button onClick={onClose} className="mt-3 text-sm text-[var(--text-muted)] hover:text-[var(--text-main)]">
                     Continue Matching
                 </button>
             </div>
@@ -278,13 +278,13 @@ const MatchIt: React.FC<{
             <div className="flex border-b border-[var(--border)] bg-[var(--bg-card)]">
                 <button 
                     onClick={() => setActiveTab('FIND')}
-                    className={`flex-1 py-4 text-sm font-bold border-b-2 transition-colors flex items-center justify-center gap-2 ${activeTab === 'FIND' ? 'border-orange-500 text-orange-400' : 'border-transparent text-[var(--text-muted)] hover:text-white'}`}
+                    className={`flex-1 py-4 text-sm font-bold border-b-2 transition-colors flex items-center justify-center gap-2 ${activeTab === 'FIND' ? 'border-orange-500 text-orange-400' : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
                 >
                     <Sparkles size={16} /> Find Vibe
                 </button>
                 <button 
                     onClick={() => setActiveTab('CHATS')}
-                    className={`flex-1 py-4 text-sm font-bold border-b-2 transition-colors flex items-center justify-center gap-2 ${activeTab === 'CHATS' ? 'border-orange-500 text-orange-400' : 'border-transparent text-[var(--text-muted)] hover:text-white'}`}
+                    className={`flex-1 py-4 text-sm font-bold border-b-2 transition-colors flex items-center justify-center gap-2 ${activeTab === 'CHATS' ? 'border-orange-500 text-orange-400' : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
                 >
                     <MessageCircle size={16} /> My Matches
                 </button>
@@ -294,8 +294,8 @@ const MatchIt: React.FC<{
                 {activeTab === 'FIND' ? renderFeed() : renderChats()}
             </div>
             {activeTab === 'FIND' && (
-                <button onClick={() => setPostModalOpen(true)} className="fixed bottom-20 lg:bottom-8 right-8 z-30 bg-orange-500 hover:bg-orange-600 w-16 h-16 rounded-full flex items-center justify-center shadow-lg shadow-orange-500/40 transition-transform hover:scale-105 active:scale-95">
-                    <Flame size={32} className="text-white" />
+                <button onClick={() => setPostModalOpen(true)} className="fixed bottom-24 lg:bottom-8 right-6 z-30 bg-orange-500 hover:bg-orange-600 w-14 h-14 rounded-full flex items-center justify-center shadow-lg shadow-orange-500/30 transition-transform hover:scale-105 active:scale-95">
+                    <Flame size={28} className="text-white" />
                 </button>
             )}
         </div>
@@ -323,7 +323,7 @@ const MatchPostCard: React.FC<{post: Post; user: User; interactions: MatchItInte
                 <div className="flex-1">
                     <div className="flex justify-between items-start">
                          <div>
-                            <h4 className="font-bold text-white flex items-center">{post.userName} {post.mood && <span className="text-2xl ml-2">{post.mood}</span>}</h4>
+                            <h4 className="font-bold text-[var(--text-main)] flex items-center">{post.userName} {post.mood && <span className="text-2xl ml-2">{post.mood}</span>}</h4>
                             {(post.authorCity && post.authorState) && (
                                 <div className="text-xs text-[var(--text-muted)] font-bold flex items-center gap-1 mt-1">
                                     <MapPin size={12}/> {post.authorCity}, {post.authorState}
@@ -348,13 +348,13 @@ const MatchPostCard: React.FC<{post: Post; user: User; interactions: MatchItInte
                             </div>
                         )}
                     </div>
-                    <p className="text-white whitespace-pre-wrap mt-2">{post.content}</p>
+                    <p className="text-[var(--text-main)] whitespace-pre-wrap mt-2">{post.content}</p>
                     {post.image && <img src={post.image} className="mt-3 rounded-2xl border border-[var(--border)] max-h-96 w-full object-cover" />}
                     
-                    <div className="mt-3 border border-[var(--border-strong)] rounded-lg p-3 text-sm space-y-2 bg-black/30">
-                        {post.matchLookingFor && <div className="flex items-start gap-2"><span className="font-bold text-orange-400/80 w-24 flex-shrink-0">Looking to:</span><span className="font-semibold text-white">{post.matchLookingFor}</span></div>}
-                        {post.strain && <div className="flex items-start gap-2"><span className="font-bold text-orange-400/80 w-24 flex-shrink-0">Smoking:</span><span className="font-semibold text-white">{post.strain}</span></div>}
-                        {post.matchExpiresAt && <div className="flex items-start gap-2"><span className="font-bold text-orange-400/80 w-24 flex-shrink-0">Expires:</span><span className={`font-semibold ${timeLeft === 'Expired' ? 'text-red-500' : 'text-white'}`}>{timeLeft}</span></div>}
+                    <div className="mt-3 border border-[var(--border-strong)] rounded-lg p-3 text-sm space-y-2 bg-[var(--bg-input)]">
+                        {post.matchLookingFor && <div className="flex items-start gap-2"><span className="font-bold text-orange-400/80 w-24 flex-shrink-0">Looking to:</span><span className="font-semibold text-[var(--text-main)]">{post.matchLookingFor}</span></div>}
+                        {post.strain && <div className="flex items-start gap-2"><span className="font-bold text-orange-400/80 w-24 flex-shrink-0">Smoking:</span><span className="font-semibold text-[var(--text-main)]">{post.strain}</span></div>}
+                        {post.matchExpiresAt && <div className="flex items-start gap-2"><span className="font-bold text-orange-400/80 w-24 flex-shrink-0">Expires:</span><span className={`font-semibold ${timeLeft === 'Expired' ? 'text-red-500' : 'text-[var(--text-main)]'}`}>{timeLeft}</span></div>}
                     </div>
 
                     {!isOwner ? (
@@ -379,7 +379,7 @@ const MatchPostCard: React.FC<{post: Post; user: User; interactions: MatchItInte
                                             </div>
                                             <div className="flex gap-2">
                                                 <button onClick={() => onRespondVibe(vibe, 'MATCHED')} className="px-3 py-1 text-xs font-bold bg-green-500 text-black rounded-full hover:bg-green-600">Match</button>
-                                                <button onClick={() => onRespondVibe(vibe, 'DECLINED')} className="p-2 text-[var(--text-muted)] hover:text-white"><XCircle size={16} /></button>
+                                                <button onClick={() => onRespondVibe(vibe, 'DECLINED')} className="p-2 text-[var(--text-muted)] hover:text-[var(--text-main)]"><XCircle size={16} /></button>
                                             </div>
                                         </div>
                                     ))}

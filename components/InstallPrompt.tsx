@@ -120,14 +120,14 @@ const InstallPrompt: React.FC = () => {
         <div className="p-4 flex items-start gap-3">
           <LogoMark size="lg" />
           <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-white text-sm">Install StrainVerse</h3>
+            <h3 className="font-bold text-[var(--text-main)] text-sm">Install StrainVerse</h3>
             <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
               {helpText}
             </p>
           </div>
           <button
             onClick={dismiss}
-            className="p-1.5 rounded-full flex-shrink-0 hover:bg-white/10 transition-colors"
+            className="p-1.5 rounded-full flex-shrink-0 hover:bg-[var(--bg-input)] transition-colors"
             style={{ color: 'var(--text-muted)' }}
             aria-label="Dismiss install prompt"
           >

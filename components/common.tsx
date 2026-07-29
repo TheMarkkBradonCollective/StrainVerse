@@ -22,7 +22,7 @@ export const StrainStories: React.FC<{stories: Story[], onAddStoryClick?: () => 
         <>
             <div className="flex gap-4 overflow-x-auto py-6 px-4 no-scrollbar border-b border-[var(--border)]">
                 <div onClick={onAddStoryClick} className="flex flex-col items-center gap-1 min-w-[70px] cursor-pointer group">
-                    <div className="w-16 h-16 rounded-full border-2 border-dashed border-[var(--accent)]/50 flex items-center justify-center bg-black/40 group-hover:bg-[var(--accent)]/20 transition-colors">
+                    <div className="w-16 h-16 rounded-full border-2 border-dashed border-[var(--accent)]/50 flex items-center justify-center bg-[var(--bg-input)] group-hover:bg-[var(--accent)]/20 transition-colors">
                         <Camera size={24} className="text-[var(--accent)]" />
                     </div>
                     <span className="text-[10px] font-bold text-[var(--text-muted)] mt-1">Add Story</span>
@@ -30,11 +30,11 @@ export const StrainStories: React.FC<{stories: Story[], onAddStoryClick?: () => 
                 {stories.map(s => (
                     <div key={s.id} onClick={() => setActiveStory(s)} className="flex flex-col items-center gap-1 min-w-[70px] cursor-pointer group">
                         <div className={`p-[3px] rounded-full bg-gradient-to-tr ${(s.high_level || 0) > 8 ? 'from-[var(--sunset-hybrid)] via-orange-500 to-[var(--indica-purple)] animate-pulse' : 'from-[var(--forest-green)] via-blue-500 to-purple-600'}`}>
-                            <div className="p-[2px] bg-black rounded-full relative">
+                            <div className="p-[2px] bg-[var(--bg-card)] rounded-full relative">
                                  <img src={s.user_avatar} className="w-14 h-14 rounded-full object-cover" alt={s.user_name} />
                             </div>
                         </div>
-                        <span className="text-[10px] font-medium text-gray-300 truncate w-16 text-center group-hover:text-[var(--accent)] transition-colors">{s.user_name}</span>
+                        <span className="text-[10px] font-medium text-[var(--text-secondary)] truncate w-16 text-center group-hover:text-[var(--accent)] transition-colors">{s.user_name}</span>
                     </div>
                 ))}
             </div>
@@ -46,17 +46,17 @@ export const StrainStories: React.FC<{stories: Story[], onAddStoryClick?: () => 
                          <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-black/90 flex flex-col justify-between p-6">
                             <div className="flex justify-between items-start">
                                 <div className="flex items-center gap-3">
-                                    <img src={activeStory.user_avatar} className="w-10 h-10 rounded-full border border-white/50" />
+                                    <img src={activeStory.user_avatar} className="w-10 h-10 rounded-full border border-[var(--border)]0" />
                                     <div>
-                                        <h3 className="font-bold text-white text-sm">{activeStory.user_name}</h3>
-                                        <p className="text-xs text-gray-400">2h ago • High Level: {activeStory.high_level || 'N/A'}/10</p>
+                                        <h3 className="font-bold text-[var(--text-main)] text-sm">{activeStory.user_name}</h3>
+                                        <p className="text-xs text-[var(--text-muted)]">2h ago • High Level: {activeStory.high_level || 'N/A'}/10</p>
                                     </div>
                                 </div>
-                                <button onClick={() => setActiveStory(null)}><XCircle className="text-white/50" /></button>
+                                <button onClick={() => setActiveStory(null)}><XCircle className="text-[var(--text-muted)]" /></button>
                             </div>
                             <div>
                                 <h2 className="text-2xl font-black text-[var(--accent)] mb-2 neon-text-glow">{activeStory.strain_name || 'Vibes'}</h2>
-                                <div className="flex gap-4 justify-center pt-4 border-t border-white/10">
+                                <div className="flex gap-4 justify-center pt-4 border-t border-[var(--border)]">
                                     <button className="text-2xl hover:scale-125 transition-transform">🔥</button>
                                     <button className="text-2xl hover:scale-125 transition-transform">😂</button>
                                     <button className="text-2xl hover:scale-125 transition-transform">😭</button>

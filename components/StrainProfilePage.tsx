@@ -50,7 +50,7 @@ const AddReview: React.FC<{ strainId: string; userId: string; onReviewSaved: (re
             <div className="flex items-center gap-1 mb-3">
                 {[1,2,3,4,5].map(star => (
                     <button key={star} onClick={() => setRating(star)}>
-                        <Star size={24} className={`transition-colors cursor-pointer ${rating >= star ? 'text-yellow-400 fill-current' : 'text-gray-600 hover:text-gray-400'}`} />
+                        <Star size={24} className={`transition-colors cursor-pointer ${rating >= star ? 'text-amber-500 fill-current' : 'text-[var(--text-muted)] hover:text-[var(--text-muted)]'}`} />
                     </button>
                 ))}
             </div>
@@ -108,7 +108,7 @@ const UploadPhoto: React.FC<{ strainId: string; userId: string; onPhotoAdded: (p
                         value={brand} 
                         onChange={e => setBrand(e.target.value)}
                         placeholder="Brand? (optional)"
-                        className="w-full bg-black/50 text-white text-sm rounded-full px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+                        className="w-full bg-[var(--bg-card)] text-[var(--text-main)] text-sm border border-[var(--border)] rounded-full px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
                     />
                     <div className="flex gap-2">
                         <button onClick={handleUpload} disabled={isUploading} className="flex-1 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white text-sm font-bold py-2 rounded-full disabled:opacity-50 flex items-center justify-center gap-2">
@@ -215,8 +215,8 @@ const StrainProfilePage: React.FC<StrainProfilePageProps> = ({ strain: initialSt
         onClick={() => setActiveTab(label)}
         className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold border-b-2 transition-colors ${
             activeTab === label 
-            ? 'border-[var(--accent)] text-white' 
-            : 'border-transparent text-[var(--text-muted)] hover:text-white'
+            ? 'border-[var(--accent)] text-[var(--text-main)]' 
+            : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]'
         }`}
       >
         <Icon size={16} />
@@ -256,7 +256,7 @@ const StrainProfilePage: React.FC<StrainProfilePageProps> = ({ strain: initialSt
                              <img src={r.user_avatar} className="w-8 h-8 rounded-full" />
                              <span className="text-sm font-bold">{r.user_name}</span>
                         </div>
-                        <div className="flex items-center gap-1 text-yellow-400 text-sm font-bold"><Star size={14} className="fill-current"/> {r.rating}/5</div>
+                        <div className="flex items-center gap-1 text-amber-500 text-sm font-bold"><Star size={14} className="fill-current"/> {r.rating}/5</div>
                     </div>
                     <p className="text-sm text-[var(--text-secondary)]">{r.text || <i>No comment.</i>}</p>
                 </div>
@@ -273,7 +273,7 @@ const StrainProfilePage: React.FC<StrainProfilePageProps> = ({ strain: initialSt
                 {chatMessages.map(m => (
                     <div key={m.id} className={`flex items-start gap-2 ${m.user_id === user.id ? 'justify-end' : ''}`}>
                          <div className={`p-3 rounded-xl max-w-xs ${m.user_id === user.id ? 'bg-[var(--accent)] text-white rounded-br-none' : 'bg-[var(--bg-card)] rounded-bl-none'}`}>
-                             {m.user_id !== user.id && <p className="text-xs font-bold text-purple-400 mb-0.5">{m.user_name}</p>}
+                             {m.user_id !== user.id && <p className="text-xs font-bold text-[var(--accent)] mb-0.5">{m.user_name}</p>}
                              <p className="text-sm break-words">{m.message}</p>
                          </div>
                     </div>
@@ -290,42 +290,53 @@ const StrainProfilePage: React.FC<StrainProfilePageProps> = ({ strain: initialSt
     }
   };
 
+  const heroTone =
+    (strain.type || '').toLowerCase() === 'sativa' ? 'bg-[var(--sativa-sky)]' :
+    (strain.type || '').toLowerCase() === 'indica' ? 'bg-[var(--indica-blush)]' :
+    'bg-[var(--hybrid-mist)]';
+
   return (
-    <div className="flex flex-col h-full relative">
+    <div className="flex flex-col h-full relative pb-20 lg:pb-0">
       <div className="p-4 border-b border-[var(--border)]">
-        <div className="flex justify-between items-start">
-            <div>
-                <span className="text-sm font-bold uppercase tracking-widest px-2 py-1 rounded-full bg-white/10 text-[var(--accent)]">{strain.type}</span>
-                <h1 className="text-4xl font-black mt-2">{strain.name}</h1>
-            </div>
-            <div className="text-right flex-shrink-0">
-                <div className="flex items-center gap-1 text-2xl font-bold text-yellow-400"><Star size={20} className="fill-current"/> {strain.avg_rating || 'N/A'}</div>
-                <span className="text-xs text-[var(--text-muted)]">{strain.review_count || 0} reviews</span>
-            </div>
+        <div className={`${heroTone} rounded-[1.75rem] p-5 mb-4 shadow-[var(--shadow-card)] overflow-hidden relative`}>
+          <div className="flex justify-between items-start gap-4 relative z-10">
+              <div>
+                  <span className="text-[11px] font-bold uppercase tracking-widest px-3 py-1 rounded-full bg-white/80 text-[var(--accent)]">{strain.type}</span>
+                  <h1 className="text-4xl font-extrabold mt-3 tracking-tight text-[var(--text-main)]">{strain.name}</h1>
+                  <p className="text-sm mt-2 text-[var(--text-secondary)] max-w-xl leading-relaxed">{strain.description}</p>
+              </div>
+              <div className="text-right flex-shrink-0 bg-white/80 rounded-2xl px-3 py-2 shadow-sm">
+                  <div className="flex items-center gap-1 text-2xl font-bold text-amber-500 justify-end"><Star size={20} className="fill-current"/> {strain.avg_rating || 'N/A'}</div>
+                  <span className="text-xs text-[var(--text-muted)]">{strain.review_count || 0} reviews</span>
+              </div>
+          </div>
+          {strain.cover_image_url && (
+            <img src={strain.cover_image_url} alt="" className="absolute -right-4 -bottom-8 w-40 h-40 object-cover rounded-full opacity-30 pointer-events-none" />
+          )}
         </div>
 
-        <div className="bg-[var(--bg-input)] p-1 rounded-full flex items-center mt-4 border border-[var(--border)]">
+        <div className="bg-[var(--bg-card)] p-1 rounded-full flex items-center border border-[var(--border)] shadow-sm">
             <button 
                 onClick={() => setCurrentForm('FLOWER')}
-                className={`flex-1 text-center font-bold text-sm py-2 rounded-full transition-all flex items-center justify-center gap-2 ${currentForm === 'FLOWER' ? 'bg-[var(--accent)] text-white shadow-md' : 'text-[var(--text-muted)] hover:text-white'}`}
+                className={`flex-1 text-center font-bold text-sm py-2.5 rounded-full transition-all flex items-center justify-center gap-2 ${currentForm === 'FLOWER' ? 'bg-[var(--accent)] text-white shadow-md' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
             >
                 <LeafIcon size={16} /> Flower
             </button>
             <button 
                 onClick={() => setCurrentForm('CONCENTRATE')}
-                className={`flex-1 text-center font-bold text-sm py-2 rounded-full transition-all flex items-center justify-center gap-2 ${currentForm === 'CONCENTRATE' ? 'bg-[var(--accent)] text-white shadow-md' : 'text-[var(--text-muted)] hover:text-white'}`}
+                className={`flex-1 text-center font-bold text-sm py-2.5 rounded-full transition-all flex items-center justify-center gap-2 ${currentForm === 'CONCENTRATE' ? 'bg-[var(--accent)] text-white shadow-md' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
             >
                 <Diamond size={16} /> Concentrate
             </button>
         </div>
 
-        <div className="flex items-center gap-4 mt-3">
+        <div className="flex items-center gap-3 mt-3 flex-wrap">
             <button 
                 onClick={() => handleToggleLog('SMOKED')}
                 className={`flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-full transition-all border ${
                     strain.user_has_smoked
-                        ? 'bg-orange-500/20 border-orange-500/50 text-orange-400'
-                        : 'bg-[var(--bg-card)] border-[var(--border)] text-[var(--text-muted)] hover:border-orange-500/50 hover:text-orange-400'
+                        ? 'bg-orange-500/15 border-orange-500/40 text-orange-600'
+                        : 'bg-[var(--bg-card)] border-[var(--border)] text-[var(--text-muted)] hover:border-orange-500/50 hover:text-orange-600'
                 }`}
             >
                 <Flame size={16} /> Smoked
@@ -334,36 +345,35 @@ const StrainProfilePage: React.FC<StrainProfilePageProps> = ({ strain: initialSt
                 onClick={() => handleToggleLog('DABBED')}
                 className={`flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-full transition-all border ${
                     strain.user_has_dabbed
-                        ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400'
-                        : 'bg-[var(--bg-card)] border-[var(--border)] text-[var(--text-muted)] hover:border-cyan-500/50 hover:text-cyan-400'
+                        ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-700'
+                        : 'bg-[var(--bg-card)] border-[var(--border)] text-[var(--text-muted)] hover:border-cyan-500/50 hover:text-cyan-700'
                 }`}
             >
                 <Diamond size={16} /> Dabbed
             </button>
         </div>
 
-        <p className="text-sm mt-4 text-[var(--text-secondary)]">{strain.description}</p>
-        <div className="mt-4 border-t border-[var(--border)] pt-4 space-y-4">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
+        <div className="mt-4 pt-4 space-y-4">
+            <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-3">
                     <h4 className="font-bold text-[var(--text-muted)] text-xs uppercase flex items-center gap-1 mb-1"><Dna size={12}/> Genetics</h4>
-                    <p>{strain.genetics || 'Unknown'}</p>
+                    <p className="font-semibold">{strain.genetics || 'Unknown'}</p>
                 </div>
-                <div>
+                <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-3">
                     <h4 className="font-bold text-[var(--text-muted)] text-xs uppercase flex items-center gap-1 mb-1"><Atom size={12}/> THC</h4>
-                    <p>{strain.thc_min && strain.thc_max ? `${strain.thc_min}-${strain.thc_max}%` : 'N/A'}</p>
+                    <p className="font-semibold">{strain.thc_min && strain.thc_max ? `${strain.thc_min}-${strain.thc_max}%` : 'N/A'}</p>
                 </div>
             </div>
             <div>
                 <h4 className="font-bold text-[var(--text-muted)] text-xs uppercase flex items-center gap-1 mb-2"><Wind size={12} /> Effects</h4>
                 <div className="flex flex-wrap gap-2">
-                    {(strain.effects || []).map(e => <span key={e} className="text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded-full capitalize">{e}</span>)}
+                    {(strain.effects || []).map(e => <span key={e} className="text-xs bg-sky-100 text-sky-800 px-2.5 py-1 rounded-full capitalize font-medium">{e}</span>)}
                 </div>
             </div>
             <div>
                 <h4 className="font-bold text-[var(--text-muted)] text-xs uppercase flex items-center gap-1 mb-2"><LeafIcon size={12}/> Flavors</h4>
                 <div className="flex flex-wrap gap-2">
-                    {(strain.flavors || []).map(f => <span key={f} className="text-xs bg-green-500/20 text-green-300 px-2 py-1 rounded-full capitalize">{f}</span>)}
+                    {(strain.flavors || []).map(f => <span key={f} className="text-xs bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full capitalize font-medium">{f}</span>)}
                 </div>
             </div>
         </div>
@@ -379,7 +389,7 @@ const StrainProfilePage: React.FC<StrainProfilePageProps> = ({ strain: initialSt
 
       {selectedPhoto && (
         <div className="fixed inset-0 z-[100] bg-black/95 flex flex-col items-center justify-center p-4 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setSelectedPhoto(null)}>
-            <button onClick={() => setSelectedPhoto(null)} className="absolute top-4 right-4 p-2 text-white/50 hover:text-white transition-colors z-[101]">
+            <button onClick={() => setSelectedPhoto(null)} className="absolute top-4 right-4 p-2 text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors z-[101]">
                 <XCircle size={32} />
             </button>
             
@@ -390,11 +400,11 @@ const StrainProfilePage: React.FC<StrainProfilePageProps> = ({ strain: initialSt
                     className="max-h-[85vh] max-w-full w-auto object-contain rounded-lg shadow-2xl" 
                 />
                 
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 backdrop-blur-md border border-white/10 p-2 pr-4 rounded-full flex items-center gap-3 shadow-lg">
-                    <img src={selectedPhoto.user_avatar} className="w-8 h-8 rounded-full border border-white/20" alt={selectedPhoto.user_name} />
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 backdrop-blur-md border border-[var(--border)] p-2 pr-4 rounded-full flex items-center gap-3 shadow-lg">
+                    <img src={selectedPhoto.user_avatar} className="w-8 h-8 rounded-full border border-[var(--border)]" alt={selectedPhoto.user_name} />
                     <div className="flex flex-col">
-                        <span className="text-xs font-bold text-white">{selectedPhoto.user_name}</span>
-                         <span className="text-[10px] text-white/60">{new Date(selectedPhoto.created_at).toLocaleDateString()} {selectedPhoto.brand && `• ${selectedPhoto.brand}`}</span>
+                        <span className="text-xs font-bold text-[var(--text-main)]">{selectedPhoto.user_name}</span>
+                         <span className="text-[10px] text-[var(--text-muted)]">{new Date(selectedPhoto.created_at).toLocaleDateString()} {selectedPhoto.brand && `• ${selectedPhoto.brand}`}</span>
                     </div>
                 </div>
             </div>

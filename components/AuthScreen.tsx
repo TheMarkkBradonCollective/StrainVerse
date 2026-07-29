@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { auth, api, formatSupabaseError } from '../services/supabaseClient';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ChevronRight } from 'lucide-react';
 import { LogoMark } from './Logo';
 
 interface AuthScreenProps {
@@ -66,15 +66,18 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
     }
   };
 
+  const inputClass =
+    'w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-2xl px-4 py-3 text-[var(--text-main)] text-sm focus:border-[var(--accent)] outline-none transition-colors placeholder-[var(--text-muted)]/40';
+
   return (
-    <div className="w-full bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl shadow-2xl shadow-black/50 relative z-10 overflow-hidden">
-      <div className="p-8 text-center border-b border-[var(--border)] bg-[var(--bg-main)]/50 backdrop-blur">
+    <div className="w-full bg-[var(--bg-card)] border border-[var(--border)] rounded-[1.75rem] shadow-[var(--shadow-soft)] relative z-10 overflow-hidden">
+      <div className="p-8 text-center border-b border-[var(--border)] bg-[var(--hybrid-mist)]/50">
         <LogoMark size="xl" className="mx-auto mb-4" />
-        <h1 className="text-2xl font-black text-[var(--text-main)] mb-1 tracking-tight">
+        <h1 className="text-2xl font-extrabold text-[var(--text-main)] mb-1 tracking-tight">
           Welcome to StrainVerse
         </h1>
         <p className="text-[var(--text-muted)] text-sm font-medium">{isLogin ? 'Sign in to continue' : 'Create your account'}</p>
-        <p className="text-[var(--text-muted)]/80 text-xs mt-2">
+        <p className="text-[var(--text-muted)] text-xs mt-2">
           One Verse account works across Cookbook, StrainVerse, and SpiritsVerse.
         </p>
       </div>
@@ -82,7 +85,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
       <div className="p-8">
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-xs text-center">
+            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-600 text-xs text-center">
               {error}
             </div>
           )}
@@ -91,71 +94,76 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
             <>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[var(--text-muted)] text-xs font-bold uppercase tracking-wider mb-1">Display Name</label>
+                  <label className="block text-[var(--text-muted)] text-xs font-bold uppercase tracking-wider mb-1.5">Display Name</label>
                   <input
                     type="text"
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Alex Smith"
-                    className="w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-lg px-4 py-2.5 text-[var(--text-main)] text-sm focus:border-[var(--accent)] outline-none transition-colors placeholder-[var(--text-muted)]/30"
+                    className={inputClass}
                   />
                 </div>
                 <div>
-                  <label className="block text-[var(--text-muted)] text-xs font-bold uppercase tracking-wider mb-1">Handle</label>
+                  <label className="block text-[var(--text-muted)] text-xs font-bold uppercase tracking-wider mb-1.5">Handle</label>
                   <input
                     type="text"
                     required
                     value={handle}
                     onChange={(e) => setHandle(e.target.value.toLowerCase().replace(/\s/g, ''))}
                     placeholder="@alex"
-                    className="w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-lg px-4 py-2.5 text-[var(--text-main)] text-sm focus:border-[var(--accent)] outline-none transition-colors placeholder-[var(--text-muted)]/30"
+                    className={inputClass}
                   />
                 </div>
               </div>
                <div>
-                <label className="block text-[var(--text-muted)] text-xs font-bold uppercase tracking-wider mb-1">Date of Birth</label>
+                <label className="block text-[var(--text-muted)] text-xs font-bold uppercase tracking-wider mb-1.5">Date of Birth</label>
                 <input
                   type="date"
                   required
                   value={dob}
                   onChange={(e) => setDob(e.target.value)}
-                  className="w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-lg px-4 py-2.5 text-[var(--text-main)] text-sm focus:border-[var(--accent)] outline-none transition-colors"
+                  className={inputClass}
                 />
               </div>
             </>
           )}
 
           <div>
-            <label className="block text-[var(--text-muted)] text-xs font-bold uppercase tracking-wider mb-1">Email Address</label>
+            <label className="block text-[var(--text-muted)] text-xs font-bold uppercase tracking-wider mb-1.5">Email Address</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
-              className="w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-lg px-4 py-2.5 text-[var(--text-main)] text-sm focus:border-[var(--accent)] outline-none transition-colors placeholder-[var(--text-muted)]/30"
+              className={inputClass}
             />
           </div>
 
           <div>
-            <label className="block text-[var(--text-muted)] text-xs font-bold uppercase tracking-wider mb-1">Password</label>
+            <label className="block text-[var(--text-muted)] text-xs font-bold uppercase tracking-wider mb-1.5">Password</label>
             <input
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-lg px-4 py-2.5 text-[var(--text-main)] text-sm focus:border-[var(--accent)] outline-none transition-colors placeholder-[var(--text-muted)]/30"
+              className={inputClass}
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-bold py-3 rounded-lg shadow-lg shadow-[var(--accent)]/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2 mt-6"
+            className="w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-bold py-3.5 rounded-full shadow-[var(--shadow-color)] transition-all active:scale-[0.98] flex items-center justify-between gap-2 mt-6 pl-6 pr-2"
           >
-            {loading ? <Loader2 className="animate-spin" size={18} /> : (isLogin ? 'Sign In' : 'Create Account')}
+            <span className="flex items-center gap-2">
+              {loading ? <Loader2 className="animate-spin" size={18} /> : (isLogin ? 'Sign In' : 'Create Account')}
+            </span>
+            <span className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+              <ChevronRight size={18} />
+            </span>
           </button>
         </form>
 
@@ -164,7 +172,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
             {isLogin ? "Don't have an account?" : "Already have an account?"}
             <button
               onClick={() => setIsLogin(!isLogin)}
-              className="ml-2 text-[var(--accent)] hover:text-white/80 hover:underline font-medium transition-colors"
+              className="ml-2 text-[var(--accent)] hover:underline font-semibold transition-colors"
             >
               {isLogin ? "Sign Up" : "Log In"}
             </button>

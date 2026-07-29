@@ -52,7 +52,7 @@ const LocalLoud: React.FC<{ user: User, posts: Post[], onReaction: (postId: stri
 
     const reactionMap: Partial<Record<ReactionType, { icon: React.ReactNode | string, color: string, activeColor: string }>> = {
         'HIGH_AF': { icon: <Flame size={16} />, color: 'group-hover:text-orange-500', activeColor: 'text-orange-500' },
-        'WEAK': { icon: <CloudFog size={16} />, color: 'group-hover:text-gray-500', activeColor: 'text-gray-500' },
+        'WEAK': { icon: <CloudFog size={16} />, color: 'group-hover:text-[var(--text-muted)]', activeColor: 'text-[var(--text-muted)]' },
         'FELT_THIS': { icon: <Heart size={16} />, color: 'group-hover:text-pink-500', activeColor: 'text-pink-500' },
         'BRUH': { icon: <HelpCircle size={16} />, color: 'group-hover:text-yellow-500', activeColor: 'text-yellow-500' },
         'MELTING': { icon: '🫠', color: '', activeColor: '' }, 'DROOLING': { icon: '🤤', color: '', activeColor: '' }, 'ZANY': { icon: '🤪', color: '', activeColor: '' }, 'LAUGHING': { icon: '😂', color: '', activeColor: '' }, 'MIND_BLOWN': { icon: '🤯', color: '', activeColor: '' }, 'RELIEF': { icon: '😮‍💨', color: '', activeColor: '' },
@@ -104,16 +104,16 @@ const LocalLoud: React.FC<{ user: User, posts: Post[], onReaction: (postId: stri
                         <img src={post.userAvatar} className="w-12 h-12 rounded-full" />
                         <div className="flex-1">
                             <div className="flex items-center flex-wrap gap-2">
-                                <h4 className="font-bold text-white">{post.userName}</h4>
+                                <h4 className="font-bold text-[var(--text-main)]">{post.userName}</h4>
                                 <span className="text-sm text-[var(--text-muted)]">@{post.userName.toLowerCase()}</span>
                                 <span className="text-sm text-[var(--text-muted)]">· {new Date(post.timestamp).toLocaleDateString()}</span>
                                 {post.isMatchIt && (<span className="bg-orange-500/20 text-orange-400 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"><Flame size={12} /> MATCH IT</span>)}
                             </div>
-                            <p className="text-white whitespace-pre-wrap mt-1">{post.content}</p>
+                            <p className="text-[var(--text-main)] whitespace-pre-wrap mt-1">{post.content}</p>
                             {post.image && <img src={post.image} className="mt-3 rounded-2xl border border-[var(--border)] max-h-96 w-full object-cover" />}
                             <div className="flex items-center justify-around text-[var(--text-muted)] mt-4">
                                 {reactionsToDisplay.map(type => (
-                                    <button key={type} onClick={() => onReaction(post.id, type)} className={`flex items-center gap-2 text-sm font-mono group transition-colors ${post.userReaction === type ? reactionMap[type]!.activeColor : 'hover:text-white'}`}>
+                                    <button key={type} onClick={() => onReaction(post.id, type)} className={`flex items-center gap-2 text-sm font-mono group transition-colors ${post.userReaction === type ? reactionMap[type]!.activeColor : 'hover:text-[var(--text-main)]'}`}>
                                         <span className={`${reactionMap[type]!.color} transition-colors text-lg`}>{reactionMap[type]!.icon}</span>
                                         {post.reactions[type] || 0}
                                     </button>
@@ -137,7 +137,7 @@ const LocalLoud: React.FC<{ user: User, posts: Post[], onReaction: (postId: stri
     };
 
     const TabButton: React.FC<{ label: typeof activeTab; icon: React.ElementType }> = ({ label, icon: Icon }) => (
-        <button onClick={() => setActiveTab(label)} className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 text-xs font-bold border-b-2 transition-all ${activeTab === label ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-transparent text-[var(--text-muted)] hover:text-white'}`}>
+        <button onClick={() => setActiveTab(label)} className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 text-xs font-bold border-b-2 transition-all ${activeTab === label ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}>
             <Icon size={20} />
             <span>{label}</span>
         </button>

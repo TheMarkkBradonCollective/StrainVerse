@@ -65,8 +65,8 @@ const HighlineFeed: React.FC<{ user: User, posts: Post[], onReaction: (postId: s
             <StrainStories stories={stories} onAddStoryClick={onAddStoryClick} />
 
             {!isLocal && (
-                 <button onClick={() => setPostModalOpen(true)} className="fixed bottom-20 lg:bottom-8 right-8 z-30 bg-[var(--accent)] hover:bg-[var(--accent-hover)] w-16 h-16 rounded-full flex items-center justify-center shadow-lg shadow-[var(--accent)]/40 transition-transform hover:scale-105 active:scale-95">
-                    <Plus size={32} className="text-white" />
+                 <button onClick={() => setPostModalOpen(true)} className="fixed bottom-24 lg:bottom-8 right-6 z-30 bg-[var(--accent)] hover:bg-[var(--accent-hover)] w-14 h-14 rounded-full flex items-center justify-center shadow-[var(--shadow-color)] transition-transform hover:scale-105 active:scale-95">
+                    <Plus size={28} className="text-white" />
                 </button>
             )}
 
@@ -77,52 +77,51 @@ const HighlineFeed: React.FC<{ user: User, posts: Post[], onReaction: (postId: s
                     <SkeletonPost />
                 </div>
             ) : localPosts.map(post => (
-                <div key={post.id} className="p-4 border-b border-[var(--border)] transition-colors">
-                    <div className="hover:bg-[var(--bg-hover)] -m-4 p-4">
+                <div key={post.id} className="p-3 sm:p-4">
+                    <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-[1.5rem] p-4 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-soft)] transition-shadow">
                         {isLocal && post.distance && (
                             <div className="text-xs text-[var(--accent)] font-bold mb-2 flex items-center gap-1">
                                 <MapPin size={12}/> {post.distance.toFixed(1)}km away
                             </div>
                         )}
                         <div className="flex gap-3">
-                            <img src={post.userAvatar} className="w-12 h-12 rounded-full" />
+                            <img src={post.userAvatar} className="w-12 h-12 rounded-full ring-2 ring-[var(--border)] object-cover" />
                             <div className="flex-1">
                                 <div className="flex items-center flex-wrap gap-2">
-                                    <h4 className="font-bold text-white flex items-center">{post.userName} {post.mood && <span className="text-2xl ml-2">{post.mood}</span>}</h4>
+                                    <h4 className="font-bold text-[var(--text-main)] flex items-center">{post.userName} {post.mood && <span className="text-2xl ml-2">{post.mood}</span>}</h4>
                                     <span className="text-sm text-[var(--text-muted)]">@{post.userName.toLowerCase()}</span>
                                     <span className="text-sm text-[var(--text-muted)]">· {new Date(post.timestamp).toLocaleDateString()}</span>
                                     {post.isMatchIt && (
-                                        <span className="bg-orange-500/20 text-orange-400 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                                        <span className="bg-orange-500/15 text-orange-600 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
                                             <Flame size={12} /> MATCH IT
                                         </span>
                                     )}
                                 </div>
-                                <p className="text-white whitespace-pre-wrap mt-1">{post.content}</p>
-                                {post.image && <img src={post.image} className="mt-3 rounded-2xl border border-[var(--border)] max-h-96 w-full object-cover" />}
+                                <p className="text-[var(--text-main)] whitespace-pre-wrap mt-1 leading-relaxed">{post.content}</p>
+                                {post.image && <img src={post.image} className="mt-3 rounded-[1.25rem] border border-[var(--border)] max-h-96 w-full object-cover" />}
                                 
                                 {(post.strain || post.highLevel || post.soundtrack) && (
-                                    <div className="mt-3 border border-[var(--border)] rounded-lg p-2 flex items-center gap-4 text-xs">
-                                        {post.strain && <span className="flex items-center gap-1"><Leaf size={12} className="text-green-400"/> {post.strain}</span>}
-                                        {post.highLevel && <span className="flex items-center gap-1"><Rocket size={12} className="text-purple-400"/> {post.highLevel}/10</span>}
-                                        {post.soundtrack && <span className="flex items-center gap-1 truncate"><Music size={12} className="text-pink-400"/> {post.soundtrack}</span>}
+                                    <div className="mt-3 bg-[var(--bg-input)] rounded-2xl p-2.5 flex items-center gap-4 text-xs">
+                                        {post.strain && <span className="flex items-center gap-1 font-medium"><Leaf size={12} className="text-[var(--accent)]"/> {post.strain}</span>}
+                                        {post.highLevel && <span className="flex items-center gap-1 font-medium"><Rocket size={12} className="text-[var(--indica-purple)]"/> {post.highLevel}/10</span>}
+                                        {post.soundtrack && <span className="flex items-center gap-1 truncate font-medium"><Music size={12} className="text-pink-500"/> {post.soundtrack}</span>}
                                     </div>
                                 )}
 
                                 <div className="flex items-center justify-around text-[var(--text-muted)] mt-4">
                                     {reactionsToDisplay.map(type => (
-                                        <button key={type} onClick={() => onReaction(post.id, type)} className={`flex items-center gap-2 text-sm font-mono group transition-colors ${post.userReaction === type ? reactionMap[type]!.color : 'hover:text-white'}`}>
+                                        <button key={type} onClick={() => onReaction(post.id, type)} className={`flex items-center gap-2 text-sm font-mono group transition-colors ${post.userReaction === type ? reactionMap[type]!.color : 'hover:text-[var(--text-main)]'}`}>
                                             <span className={`transition-colors text-lg ${reactionMap[type]!.hoverColor}`}>{reactionMap[type]!.icon}</span>
                                             {post.reactions[type] || 0}
                                         </button>
                                     ))}
-                                    <button onClick={() => handleToggleComments(post.id)} className={`flex items-center gap-2 text-sm font-mono group transition-colors ${openCommentsPostId === post.id ? 'text-[var(--accent)]' : 'hover:text-white'}`}>
+                                    <button onClick={() => handleToggleComments(post.id)} className={`flex items-center gap-2 text-sm font-mono group transition-colors ${openCommentsPostId === post.id ? 'text-[var(--accent)]' : 'hover:text-[var(--text-main)]'}`}>
                                         <MessageSquare size={16} />
                                         {post.comments || 0}
                                     </button>
                                 </div>
                             </div>
                         </div>
-                    </div>
                     {openCommentsPostId === post.id && (
                         <div className="mt-4 pt-4 border-t border-[var(--border)] animate-in fade-in duration-300">
                             <div className="flex items-center gap-2 mb-4">
@@ -148,14 +147,15 @@ const HighlineFeed: React.FC<{ user: User, posts: Post[], onReaction: (postId: s
                                     <div key={comment.id} className="flex items-start gap-2 text-sm">
                                         <img src={comment.user_avatar} className="w-6 h-6 rounded-full mt-0.5" />
                                         <div className="bg-[var(--bg-input)] px-3 py-2 rounded-xl">
-                                            <span className="font-bold text-white/90">{comment.user_name}</span>
-                                            <p className="text-white/70 break-words">{comment.content}</p>
+                                            <span className="font-bold text-[var(--text-main)]">{comment.user_name}</span>
+                                            <p className="text-[var(--text-secondary)] break-words">{comment.content}</p>
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         </div>
                     )}
+                    </div>
                 </div>
             ))}
         </div>

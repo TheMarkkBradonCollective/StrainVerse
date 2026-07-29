@@ -41,7 +41,7 @@ const CreateSeshModal: React.FC<CreateSeshModalProps> = ({ onClose, onCreate }) 
           <h2 className="text-lg font-bold flex items-center gap-2">
             <Users size={18} className="text-[var(--accent)]" /> Create a New Sesh
           </h2>
-          <button onClick={onClose} className="p-2 hover:bg-[var(--bg-hover)] rounded-full text-[var(--text-muted)] hover:text-white">
+          <button onClick={onClose} className="p-2 hover:bg-[var(--bg-hover)] rounded-full text-[var(--text-muted)] hover:text-[var(--text-main)]">
             <XCircle size={20} />
           </button>
         </div>

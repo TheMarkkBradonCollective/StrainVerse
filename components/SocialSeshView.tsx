@@ -48,8 +48,8 @@ const SocialSeshView: React.FC<{ group: Group, user: User, onSendMessage: (text:
                 {group.messages.map(msg => (
                     <div key={msg.id} className={`flex items-end gap-2 ${msg.userId === user.id ? 'justify-end' : ''}`}>
                         {msg.userId !== user.id && <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.userId}`} className="w-8 h-8 rounded-full" alt={msg.userName}/>}
-                        <div className={`max-w-xs md:max-w-md p-3 rounded-2xl ys-message-bubble ${msg.userId === user.id ? 'bg-[var(--accent)] text-white rounded-br-none' : 'bg-[var(--bg-card)] text-white rounded-bl-none'}`}>
-                           {msg.userId !== user.id && <p className="text-xs font-bold text-purple-400 mb-0.5">{msg.userName}</p>}
+                        <div className={`max-w-xs md:max-w-md p-3 rounded-2xl ys-message-bubble ${msg.userId === user.id ? 'bg-[var(--accent)] text-white rounded-br-none' : 'bg-[var(--bg-card)] text-[var(--text-main)] rounded-bl-none'}`}>
+                           {msg.userId !== user.id && <p className="text-xs font-bold text-[var(--accent)] mb-0.5">{msg.userName}</p>}
                             <p className="text-sm">{msg.text}</p>
                         </div>
                     </div>

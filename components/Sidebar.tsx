@@ -1,6 +1,6 @@
 import React from 'react';
 import { AppView, User } from '../types';
-import { Sprout, Globe, MapPin, Users, User as UserIcon, LogOut, Flame } from 'lucide-react';
+import { Sprout, Globe, Users, User as UserIcon, LogOut, Flame } from 'lucide-react';
 import Logo from './Logo';
 
 interface SidebarProps {
@@ -22,14 +22,13 @@ const navItems = [
 const NavLink: React.FC<{ icon: React.ElementType, label: string, isActive: boolean, onClick: () => void }> = ({ icon: Icon, label, isActive, onClick }) => (
     <button
       onClick={onClick}
-      style={isActive ? { animation: 'breathing-glow 3s ease-in-out infinite' } : {}}
-      className={`flex items-center w-full gap-3 px-4 py-2.5 rounded-lg text-left transition-colors ${
+      className={`flex items-center w-full gap-3 px-4 py-3 rounded-2xl text-left transition-all duration-200 ${
         isActive
-          ? 'bg-[var(--accent)] text-white font-bold'
-          : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-white'
+          ? 'bg-[var(--accent)] text-white font-bold shadow-[var(--shadow-color)]'
+          : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-main)]'
       }`}
     >
-      <Icon size={20} />
+      <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
       <span>{label}</span>
     </button>
 );
@@ -43,13 +42,13 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, user, onSignOut
   });
 
   return (
-    <aside className="w-64 h-screen sticky top-0 border-r border-[var(--border)] p-4 flex-col justify-between hidden lg:flex">
+    <aside className="w-64 h-screen sticky top-0 border-r border-[var(--border)] p-4 flex-col justify-between hidden lg:flex bg-[var(--bg-card)]/70 backdrop-blur-xl">
       <div>
-        <div className="mb-8 px-2">
+        <div className="mb-8 px-2 pt-2">
             <Logo />
         </div>
 
-        <nav className="space-y-2">
+        <nav className="space-y-1.5">
             {visibleNavItems.map(item => (
                 <NavLink
                   key={item.view}
@@ -63,13 +62,13 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, user, onSignOut
       </div>
       
       <div className="border-t border-[var(--border)] pt-4">
-        <div className="flex items-center gap-3">
-            <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full" />
+        <div className="flex items-center gap-3 p-2 rounded-2xl bg-[var(--bg-input)]/60">
+            <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-full object-cover ring-2 ring-[var(--border)]" />
             <div className="flex-1 min-w-0">
-                <p className="font-bold text-sm truncate">{user.name}</p>
+                <p className="font-bold text-sm truncate text-[var(--text-main)]">{user.name}</p>
                 <p className="text-xs text-[var(--text-muted)] truncate">@{user.handle}</p>
             </div>
-            <button onClick={onSignOut} className="p-2 text-[var(--text-muted)] hover:text-white hover:bg-[var(--bg-hover)] rounded-lg transition-colors">
+            <button onClick={onSignOut} className="p-2 text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--bg-card)] rounded-xl transition-colors">
                 <LogOut size={18} />
             </button>
         </div>

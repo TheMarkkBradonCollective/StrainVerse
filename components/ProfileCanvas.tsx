@@ -6,26 +6,28 @@ import ProfileSettingsModal from './ProfileSettingsModal';
 import { api } from '../services/supabaseClient';
 
 const DEFAULT_PROFILE_CSS = `.ys-profile-root {
-  background-color: #0a0a0a;
-  color: #f0f0f0;
-  font-family: 'Inter', sans-serif;
-  background-image: radial-gradient(circle at 50% 0%, rgba(34, 95, 65, 0.2) 0%, #0a0a0a 60%);
+  background: transparent;
+  color: var(--text-main);
+  font-family: var(--font-body);
 }
 .ys-header {
-  border-bottom: 1px solid var(--border-strong);
+  border-bottom: 1px solid var(--border);
 }
 .ys-name {
   color: var(--text-main);
-  font-weight: 900;
+  font-family: var(--font-heading);
+  font-weight: 800;
 }
 .ys-avatar {
   border: 3px solid var(--border-strong);
+  box-shadow: var(--shadow-soft);
 }
 .ys-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 1.5rem;
   margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-card);
 }
 .ys-bio {
   color: var(--text-muted);
@@ -44,13 +46,13 @@ interface ProfileCanvasProps {
 }
 
 const StatCard: React.FC<{ icon: React.ElementType; label: string; value: string | number; color: string; }> = ({ icon: Icon, label, value, color }) => (
-    <div className="flex-1 bg-white/5 p-4 rounded-xl backdrop-blur-sm border border-white/10 flex items-center gap-4">
-        <div className={`w-10 h-10 rounded-lg flex items-center justify-center bg-opacity-20 ${color.replace('text-', 'bg-')}`}>
+    <div className="flex-1 bg-[var(--bg-card)] p-4 rounded-[1.35rem] border border-[var(--border)] shadow-[var(--shadow-card)] flex items-center gap-4">
+        <div className={`w-11 h-11 rounded-2xl flex items-center justify-center bg-[var(--accent-soft)]`}>
             <Icon size={20} className={color} />
         </div>
         <div>
-            <p className="text-xl font-bold font-mono">{value}</p>
-            <p className="text-xs text-white/60 uppercase tracking-wider">{label}</p>
+            <p className="text-xl font-extrabold">{value}</p>
+            <p className="text-xs text-[var(--text-muted)] uppercase tracking-wider font-semibold">{label}</p>
         </div>
     </div>
 );
@@ -75,7 +77,7 @@ const ProfileCanvas: React.FC<ProfileCanvasProps> = ({ user, posts, isOwner, fri
   };
 
   const PlaceholderTab: React.FC<{ title: string; description: string }> = ({ title, description }) => (
-    <div className="ys-card p-8 text-center opacity-50 border border-dashed border-white/20 rounded-xl">
+    <div className="ys-card p-8 text-center opacity-50 border border-dashed border-[var(--border)] rounded-xl">
         <h3 className="text-xl font-bold mb-2">{title}</h3>
         <p>{description}</p>
     </div>
@@ -84,16 +86,16 @@ const ProfileCanvas: React.FC<ProfileCanvasProps> = ({ user, posts, isOwner, fri
   const TriedStrainsView: React.FC<{ strains: Strain[] }> = ({ strains }) => (
     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {strains.map(strain => (
-            <div key={strain.id} className="ys-card bg-white/5 rounded-xl backdrop-blur-sm border border-white/5 hover:border-white/10 transition-colors overflow-hidden">
+            <div key={strain.id} className="ys-card bg-[var(--bg-card)] rounded-xl backdrop-blur-sm border border-[var(--border)] hover:border-[var(--border)] transition-colors overflow-hidden">
                 <img src={strain.cover_image_url || `https://source.unsplash.com/random/400x300/?cannabis&sig=${strain.id}`} alt={strain.name} className="w-full h-24 object-cover" />
                 <div className="p-4">
                     <h4 className="font-bold truncate">{strain.name}</h4>
-                    <p className="text-xs text-white/60">{strain.type}</p>
+                    <p className="text-xs text-[var(--text-muted)]">{strain.type}</p>
                 </div>
             </div>
         ))}
          {strains.length === 0 && (
-            <div className="ys-card p-8 text-center opacity-50 border border-dashed border-white/20 rounded-xl col-span-full">
+            <div className="ys-card p-8 text-center opacity-50 border border-dashed border-[var(--border)] rounded-xl col-span-full">
                 No strains tried yet. Go explore the StrainVerse!
             </div>
         )}
@@ -108,14 +110,14 @@ const ProfileCanvas: React.FC<ProfileCanvasProps> = ({ user, posts, isOwner, fri
       <div className="ys-profile-root p-4 md:p-8 max-w-7xl mx-auto">
         
         {/* Header Section */}
-        <header className="ys-header mb-8 flex flex-col md:flex-row items-center md:items-end gap-6 pb-8 border-b border-white/10">
+        <header className="ys-header mb-8 flex flex-col md:flex-row items-center md:items-end gap-6 pb-8 border-b border-[var(--border)]">
           <div className="relative">
             <img 
               src={user.avatar} 
               alt={user.name} 
-              className="ys-avatar w-32 h-32 md:w-48 md:h-48 rounded-full object-cover border-4 border-white/20 shadow-xl" 
+              className="ys-avatar w-32 h-32 md:w-48 md:h-48 rounded-full object-cover border-4 border-[var(--border)] shadow-xl" 
             />
-            <div className="absolute bottom-2 right-2 w-6 h-6 bg-[var(--accent)] rounded-full border-2 border-black animate-pulse"></div>
+            <div className="absolute bottom-2 right-2 w-6 h-6 bg-[var(--accent)] rounded-full border-2 border-[var(--bg-card)] animate-pulse"></div>
           </div>
           <div className="text-center md:text-left flex-1">
             <h1 className="ys-name text-4xl md:text-6xl font-black tracking-tight mb-2">{user.name}</h1>
@@ -133,7 +135,7 @@ const ProfileCanvas: React.FC<ProfileCanvasProps> = ({ user, posts, isOwner, fri
         {/* Stats Bar */}
         <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <StatCard icon={FileText} label="Posts" value={posts.length} color="text-sky-400" />
-            <StatCard icon={Users} label="Friends" value={friendCount} color="text-purple-400" />
+            <StatCard icon={Users} label="Friends" value={friendCount} color="text-[var(--indica-purple)]" />
             <StatCard icon={LeafIcon} label="Strains Tried" value={triedStrains.length} color="text-pink-400" />
         </div>
 
@@ -144,8 +146,8 @@ const ProfileCanvas: React.FC<ProfileCanvasProps> = ({ user, posts, isOwner, fri
                 <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
                     {user.badges.map(badge => (
                         <div key={badge.id} className="flex flex-col items-center text-center w-20 flex-shrink-0 group" title={badge.description}>
-                            <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-3xl mb-1 transition-all group-hover:bg-white/10 group-hover:border-[var(--accent)] group-hover:-translate-y-1">{badge.icon}</div>
-                            <p className="text-xs font-bold text-white/80">{badge.name}</p>
+                            <div className="w-16 h-16 rounded-full bg-[var(--bg-card)] border border-[var(--border)] flex items-center justify-center text-3xl mb-1 transition-all group-hover:bg-[var(--bg-input)] group-hover:border-[var(--accent)] group-hover:-translate-y-1">{badge.icon}</div>
+                            <p className="text-xs font-bold text-[var(--text-secondary)]">{badge.name}</p>
                         </div>
                     ))}
                 </div>
@@ -153,9 +155,9 @@ const ProfileCanvas: React.FC<ProfileCanvasProps> = ({ user, posts, isOwner, fri
         )}
 
         {/* Tabs */}
-        <div className="border-b border-white/10 mb-6 flex">
+        <div className="border-b border-[var(--border)] mb-6 flex">
             {['Posts', 'Tried', 'Collections', 'Activity'].map(tab => (
-                <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-2 font-bold text-sm transition-colors ${activeTab === tab ? 'text-white border-b-2 border-[var(--accent)]' : 'text-white/50 hover:text-white'}`}>
+                <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-2 font-bold text-sm transition-colors ${activeTab === tab ? 'text-[var(--text-main)] border-b-2 border-[var(--accent)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}>
                     {tab}
                 </button>
             ))}
@@ -166,8 +168,8 @@ const ProfileCanvas: React.FC<ProfileCanvasProps> = ({ user, posts, isOwner, fri
           
           {/* Sidebar */}
           <aside className="ys-sidebar lg:col-span-4 space-y-6">
-            <div className="bg-white/5 p-4 rounded-xl backdrop-blur-sm border border-white/10">
-                <h3 className="text-lg font-bold mb-4 border-b border-white/10 pb-2">About Me</h3>
+            <div className="bg-[var(--bg-card)] p-4 rounded-xl backdrop-blur-sm border border-[var(--border)]">
+                <h3 className="text-lg font-bold mb-4 border-b border-[var(--border)] pb-2">About Me</h3>
                 <div className="space-y-3 text-sm opacity-80">
                     <div className="flex items-center gap-2">
                         <MapPin size={14} />
@@ -194,7 +196,7 @@ const ProfileCanvas: React.FC<ProfileCanvasProps> = ({ user, posts, isOwner, fri
              {activeTab === 'Posts' && (
                 <div className="space-y-6">
                     {posts.map(post => (
-                    <div key={post.id} className="ys-card bg-white/5 rounded-xl p-6 backdrop-blur-sm border border-white/5 hover:border-white/10 transition-colors">
+                    <div key={post.id} className="ys-card bg-[var(--bg-card)] rounded-xl p-6 backdrop-blur-sm border border-[var(--border)] hover:border-[var(--border)] transition-colors">
                         <div className="flex items-center gap-3 mb-4">
                             <img src={post.userAvatar} className="w-10 h-10 rounded-full" alt="" />
                             <div>
@@ -206,7 +208,7 @@ const ProfileCanvas: React.FC<ProfileCanvasProps> = ({ user, posts, isOwner, fri
                         {post.image && (
                             <img src={post.image} alt="Post content" className="w-full rounded-lg mb-4 object-cover max-h-[400px]" />
                         )}
-                        <div className="flex items-center gap-6 pt-4 border-t border-white/5">
+                        <div className="flex items-center gap-6 pt-4 border-t border-[var(--border)]">
                             <div className="flex gap-4">
                                 {reactionsToDisplay.map(type => (
                                     <button onClick={() => onReaction(post.id, type)} key={type} className={`flex items-center gap-1 text-xs transition-colors ${post.userReaction === type ? `${reactionMap[type]!.color} opacity-100` : `opacity-50 ${reactionMap[type]!.hoverColor}`}`}>
@@ -225,7 +227,7 @@ const ProfileCanvas: React.FC<ProfileCanvasProps> = ({ user, posts, isOwner, fri
                     </div>
                     ))}
                     {posts.length === 0 && (
-                        <div className="ys-card p-8 text-center opacity-50 border border-dashed border-white/20 rounded-xl">
+                        <div className="ys-card p-8 text-center opacity-50 border border-dashed border-[var(--border)] rounded-xl">
                             No posts yet.
                         </div>
                     )}

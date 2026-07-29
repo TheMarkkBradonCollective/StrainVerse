@@ -38,7 +38,7 @@ A **stoner-first social network** centered on:
 
 ### Target audience
 
-Cannabis enthusiasts who want strain knowledge, community conversation, and local connection in a dark-mode, lounge-style UI.
+Cannabis enthusiasts who want strain knowledge, community conversation, and local connection in a soft botanical, premium UI.
 
 ### Platform permissions
 
@@ -53,7 +53,7 @@ Cannabis enthusiasts who want strain knowledge, community conversation, and loca
 | **Frontend** | React 19, TypeScript, Vite 6 |
 | **Styling** | Tailwind CSS (CDN), CSS custom properties, Lucide React icons |
 | **Backend** | Supabase — PostgreSQL, Auth, Realtime, Storage |
-| **Fonts** | Inter (body), Poppins (headings), Fira Code (code editors) |
+| **Fonts** | Outfit (body), Syne (headings), Fira Code (code editors) |
 
 ### Supabase configuration
 
@@ -512,31 +512,37 @@ Tables published to `supabase_realtime` for live updates (profiles, posts, react
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| `--bg-main` | `#0a0a0a` | Page background |
-| `--bg-card` | `#121212` | Cards, modals |
-| `--bg-input` | `#1a1a1a` | Inputs |
-| `--bg-hover` | `#222222` | Hover states |
-| `--text-main` | `#f0f0f0` | Primary text |
-| `--text-secondary` | `#c0c0c0` | Secondary text |
-| `--text-muted` | `#808080` | Muted text |
-| `--forest-green` | `#225F41` | Primary accent |
-| `--indica-purple` | `#553B7C` | Strain / badge accent |
-| `--sunset-hybrid` | `#E86A61` | Highlights, alerts |
-| `--accent` | `var(--forest-green)` | Buttons, active nav |
-| `--accent-hover` | `#2E8057` | Button hover |
+| `--bg-main` | `#F3F8F4` | Soft mint page background |
+| `--bg-card` | `#FFFFFF` | Cards, modals, elevated surfaces |
+| `--bg-input` | `#E7F0EA` | Inputs, soft wells |
+| `--bg-hover` | `#DDE8E1` | Hover states |
+| `--text-main` | `#12261C` | Primary text |
+| `--text-secondary` | `#3A5648` | Secondary text |
+| `--text-muted` | `#6B8578` | Muted text |
+| `--border` | `#D5E4DA` | Default borders |
+| `--border-strong` | `#A9C4B5` | Strong borders |
+| `--forest-green` / `--accent` | `#1B5C3A` | Primary CTAs, active nav |
+| `--accent-hover` | `#147848` | Button hover |
+| `--leaf-mint` | `#7BCFA0` | Soft accent wash |
+| `--sativa-sky` | `#C8E6F5` | Sativa card tint |
+| `--indica-blush` | `#F3D9C8` | Indica card tint |
+| `--hybrid-mist` | `#D8F0E4` | Hybrid card tint |
+| `--sunset-hybrid` | `#E07A5F` | Highlights, alerts |
+| `--indica-purple` | `#6B5B8A` | Strain / badge accent |
 
 ### Visual language
 
-- **Smoky animated background** — slow gradient drift (`smoky-background` keyframes)
-- **Glassmorphism** — `backdrop-blur` on modals, headers, nav
-- **Neon glows** — green text shadows on accent elements
-- **Rounded geometry** — `rounded-xl`, `rounded-full` on cards and buttons
-- **Dark mode only** — no light theme
+- **Verdant Soft** — mint-tinted canvas with soft botanical atmosphere (radial washes + subtle leaf watermark)
+- **Pastel strain cards** — type-colored surfaces (sky / blush / mist) with rounded product imagery
+- **Pill CTAs** — forest-green primary buttons, often with a trailing icon circle
+- **Floating mobile nav** — rounded bottom bar with soft shadow
+- **Large radius** — ~24–28px on cards and panels
+- **Motion** — `fadeInUp`, soft ambient drift, subtle float on hero accents
 
 ### Typography
 
-- Headings: **Poppins** (bold/black)
-- Body: **Inter**
+- Headings: **Syne** (600–800)
+- Body: **Outfit** (300–800)
 - Code editors: **Fira Code**
 
 ### Profile CSS class contract
