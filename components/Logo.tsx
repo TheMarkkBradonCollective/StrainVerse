@@ -19,7 +19,7 @@ const markBox: Record<LogoSize, string> = {
 
 export const LogoMark: React.FC<{ size?: LogoSize; className?: string }> = ({ size = 'md', className = '' }) => (
   <span className={`${markBox[size]} inline-flex flex-shrink-0 ${className}`} aria-hidden="true">
-    <StrainVerseAppIcon size={iconSizes[size]} className="w-full h-full shadow-[var(--shadow-card)]" />
+    <StrainVerseAppIcon size={iconSizes[size]} className="w-full h-full" />
   </span>
 );
 
