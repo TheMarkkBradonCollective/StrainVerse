@@ -65,7 +65,7 @@ const calculateAge = (dobString?: string): number | null => {
 // --- SUB-COMPONENTS ---
 
 // 5. PROFILE VIEW
-const ProfileView: React.FC<{ user: User, posts: Post[], friendCount: number, triedStrains: Strain[], refreshUser: () => Promise<void>, onReaction: (postId: string, type: ReactionType) => void }> = ({ user, posts, friendCount, triedStrains, refreshUser, onReaction }) => {
+const ProfileView: React.FC<{ user: User, posts: Post[], friendCount: number, triedStrains: Strain[], refreshUser: () => Promise<void>, onReaction: (postId: string, type: ReactionType) => void, onDelete: (postId: string) => void }> = ({ user, posts, friendCount, triedStrains, refreshUser, onReaction, onDelete }) => {
     return (
         <ProfileCanvas 
             user={user} 
@@ -75,6 +75,7 @@ const ProfileView: React.FC<{ user: User, posts: Post[], friendCount: number, tr
             triedStrains={triedStrains} 
             refreshUser={refreshUser}
             onReaction={onReaction}
+            onDelete={onDelete}
         />
     )
 };
@@ -377,6 +378,18 @@ const App: React.FC = () => {
         await api.blockUser(user.id, blockedId);
         refreshCurrentViewPosts();
     };
+
+    const handleDeletePost = async (postId: string) => {
+        if (!user) return;
+        try {
+            await api.deletePost(postId, user.id);
+            setPosts(current => current.filter(p => p.id !== postId));
+            setMyPosts(current => current.filter(p => p.id !== postId));
+        } catch (error) {
+            console.error('Failed to delete post:', error);
+            alert('Could not delete this post. Please try again.');
+        }
+    };
     
     const handleSendMessage = async (text: string) => {
         if (!user || !activeGroup) return;
@@ -461,7 +474,7 @@ const App: React.FC = () => {
             case AppView.STRAINVERSE:
                 return <StrainVerseDirectory onStrainSelect={setSelectedStrain} />;
             case AppView.HERBHUB:
-                return <HighlineFeed user={user!} posts={posts} onReaction={handleFeedReaction} onPost={handlePost} stories={stories} isLoading={isPostsLoading} onAddStoryClick={() => setIsCreateStoryModalOpen(true)} />;
+                return <HighlineFeed user={user!} posts={posts} onReaction={handleFeedReaction} onPost={handlePost} onDelete={handleDeletePost} stories={stories} isLoading={isPostsLoading} onAddStoryClick={() => setIsCreateStoryModalOpen(true)} />;
             case AppView.MATCHIT:
                 return <MatchIt 
                             user={user!} 
@@ -476,7 +489,7 @@ const App: React.FC = () => {
             case AppView.SOCIALSESH:
                 return <SocialSeshDirectory groups={groups} onSelectGroup={selectGroup} refreshGroups={fetchGroups} user={user!} />;
             case AppView.PROFILE:
-                return <ProfileView user={user!} posts={myPosts} friendCount={friendCount} triedStrains={triedStrains} refreshUser={refreshUser} onReaction={handleMyPostsReaction} />;
+                return <ProfileView user={user!} posts={myPosts} friendCount={friendCount} triedStrains={triedStrains} refreshUser={refreshUser} onReaction={handleMyPostsReaction} onDelete={handleDeletePost} />;
             default:
                 return <div className="p-8 text-center">Select a view</div>;
         }
