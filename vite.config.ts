@@ -14,7 +14,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: null,
-      includeAssets: ['logo-master.png', 'logo.svg', 'apple-touch-icon.png', 'pwa-192.png', 'pwa-512.png', 'favicon.ico', 'favicon-16.png', 'favicon-32.png', 'favicon-48.png'],
+      includeAssets: ['logo-master.png', 'logo.svg', 'og-image.png', 'apple-touch-icon.png', 'pwa-192.png', 'pwa-512.png', 'pwa-512-maskable.png', 'favicon.ico', 'favicon-16.png', 'favicon-32.png', 'favicon-48.png'],
       manifest: {
         id: '/',
         name: 'StrainVerse',
@@ -41,7 +41,7 @@ export default defineConfig({
             purpose: 'any',
           },
           {
-            src: 'pwa-512.png',
+            src: 'pwa-512-maskable.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable',

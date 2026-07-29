@@ -13,12 +13,13 @@ const source = existsSync(masterPng) ? masterPng : masterSvg;
 
 const corner = await sharp(source).extract({ left: 0, top: 0, width: 1, height: 1 }).raw().toBuffer();
 const cornerMax = Math.max(corner[0], corner[1], corner[2]);
-const resizeBackground =
-  cornerMax < 40
-    ? { r: 10, g: 10, b: 10, alpha: 1 }
-    : { r: 0, g: 0, b: 0, alpha: 0 };
+const isDarkMaster = cornerMax < 40;
+const resizeBackground = isDarkMaster
+  ? { r: 10, g: 10, b: 10, alpha: 1 }
+  : { r: 0, g: 0, b: 0, alpha: 0 };
+const canvasBackground = isDarkMaster ? { r: 10, g: 10, b: 10 } : { r: 0, g: 0, b: 0, alpha: 0 };
 
-const sizes = [
+const iconSizes = [
   { name: 'pwa-512.png', size: 512 },
   { name: 'pwa-192.png', size: 192 },
   { name: 'apple-touch-icon.png', size: 180 },
@@ -27,13 +28,51 @@ const sizes = [
   { name: 'favicon-16.png', size: 16 },
 ];
 
-for (const { name, size } of sizes) {
+for (const { name, size } of iconSizes) {
   await sharp(source)
     .ensureAlpha()
     .resize(size, size, { fit: 'contain', background: resizeBackground })
     .png()
     .toFile(resolve(publicDir, name));
 }
+
+// Maskable safe zone (~80% of canvas) for Android adaptive icons
+const maskableSize = 512;
+const maskableArt = Math.round(maskableSize * 0.8);
+await sharp(source)
+  .ensureAlpha()
+  .resize(maskableArt, maskableArt, { fit: 'contain', background: resizeBackground })
+  .extend({
+    top: Math.floor((maskableSize - maskableArt) / 2),
+    bottom: Math.ceil((maskableSize - maskableArt) / 2),
+    left: Math.floor((maskableSize - maskableArt) / 2),
+    right: Math.ceil((maskableSize - maskableArt) / 2),
+    background: canvasBackground,
+  })
+  .png()
+  .toFile(resolve(publicDir, 'pwa-512-maskable.png'));
+
+// Social / Open Graph card (1200×630)
+const ogWidth = 1200;
+const ogHeight = 630;
+const ogLogo = Math.min(ogWidth, ogHeight) - 80;
+const ogPadded = await sharp(source)
+  .ensureAlpha()
+  .resize(ogLogo, ogLogo, { fit: 'contain', background: resizeBackground })
+  .png()
+  .toBuffer();
+
+await sharp({
+  create: {
+    width: ogWidth,
+    height: ogHeight,
+    channels: 4,
+    background: { r: 10, g: 10, b: 10, alpha: 1 },
+  },
+})
+  .composite([{ input: ogPadded, gravity: 'centre' }])
+  .png()
+  .toFile(resolve(publicDir, 'og-image.png'));
 
 if (existsSync(masterPng)) {
   writeFileSync(
@@ -44,4 +83,6 @@ if (existsSync(masterPng)) {
 
 execSync('python3 scripts/generate-favicon-ico.py', { stdio: 'inherit' });
 
-console.log(`Generated StrainVerse icons in public/ from ${source.split('/').pop()}.`);
+console.log(
+  `Generated StrainVerse assets in public/ from ${source.split('/').pop()}: icons, maskable, og-image.`
+);

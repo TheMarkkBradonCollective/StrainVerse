@@ -15,6 +15,7 @@ import SocialSeshDirectory from './components/SocialSeshDirectory';
 import SocialSeshView from './components/SocialSeshView';
 import CreateStoryModal from './components/CreateStoryModal';
 import InstallPrompt from './components/InstallPrompt';
+import { LogoMark } from './components/Logo';
 import { getVisibleNavItems } from './navConfig';
 
 
@@ -494,8 +495,9 @@ const App: React.FC = () => {
 
     if (!sessionChecked) {
         return (
-            <div className="h-screen w-full flex flex-col items-center justify-center gap-3" style={{ background: 'var(--bg-main)', color: 'var(--text-main)' }}>
-                <p className="text-lg animate-pulse" style={{ color: 'var(--accent)' }}>Loading Your Universe...</p>
+            <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-[var(--bg-main)]">
+                <LogoMark size="xl" />
+                <p className="text-lg animate-pulse text-[var(--accent)]">Loading Your Universe...</p>
             </div>
         );
     }
