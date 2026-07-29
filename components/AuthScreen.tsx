@@ -55,8 +55,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
         msg.toLowerCase().includes('schema cache') ||
         msg.toLowerCase().includes('repair_postgrest_schemas') ||
         msg.toLowerCase().includes('invalid schema') ||
-        msg.toLowerCase().includes('complete-schema.sql') ||
-        msg.toLowerCase().includes('complete-setup.sql')
+        msg.toLowerCase().includes('complete-schema.sql')
       ) {
         setError(msg);
       } else {

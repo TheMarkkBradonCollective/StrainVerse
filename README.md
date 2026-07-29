@@ -25,4 +25,4 @@ Cannabis-culture social network and community-sourced strain encyclopedia. Part 
 
 ## Database setup
 
-Run `sql/complete-schema.sql` in the Supabase SQL Editor whenever you pull updates (safe to re-run). See `SPEC.md` for full documentation.
+Run `sql/complete-schema.sql` in the Supabase SQL Editor whenever you pull updates (safe to re-run). Optional strain data: `sql/seed-strains.sql` and `sql/seed-strains-extended.sql`. See `SPEC.md` for full documentation.

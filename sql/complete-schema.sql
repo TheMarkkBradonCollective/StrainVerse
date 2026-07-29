@@ -20,10 +20,6 @@
 --   (remove dead entries: strain, strainverse)
 --
 -- Optional strain data (not schema): sql/seed-strains.sql, sql/seed-strains-extended.sql
--- Nuclear reset: sql/wipe-verse.sql then re-run this file
--- Quick PostgREST-only fix: sql/repair-postgrest.sql (subset of this file)
---
--- Legacy aliases: sql/complete-setup.sql points here (same content)
 -- =============================================================================
 
 create extension if not exists "pgcrypto";

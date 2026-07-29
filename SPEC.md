@@ -179,7 +179,7 @@ MatchIt is a **Grindr-style people feed**: nearby adults who want to smoke, not 
 
 - Profile toggle `show_in_matchit` — when on, you appear in others’ Nearby feed
 - Optional status: looking-for intent (`matchit_looking_for`)
-- SQL migration: `sql/matchit-people-feed.sql`
+- Included in `sql/complete-schema.sql`
 
 #### Tabs
 
@@ -639,7 +639,8 @@ npm run preview
 ├── details.txt                # Legacy feature notes
 ├── sql/
 │   ├── complete-schema.sql    # Canonical DB schema (re-run for all updates)
-│   └── complete-setup.sql     # Symlink alias → complete-schema.sql
+│   ├── seed-strains.sql       # Optional strain encyclopedia seed
+│   └── seed-strains-extended.sql  # Optional extended strain seed
 ├── services/
 │   └── supabaseClient.ts      # Supabase client, auth, full API
 └── components/
