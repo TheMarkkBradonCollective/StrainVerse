@@ -5,7 +5,7 @@ interface StrainVerseAppIconProps {
   className?: string;
 }
 
-/** App mark: open palm passing a bong, SpiritsVerse illustration style (public/logo-master.png). */
+/** App mark: bong pass + lit joint pass, SpiritsVerse illustration (public/logo-master.png). */
 const StrainVerseAppIcon: React.FC<StrainVerseAppIconProps> = ({ size = 24, className = '' }) => (
   <img
     src="/pwa-192.png"
