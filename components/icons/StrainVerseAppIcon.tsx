@@ -5,7 +5,7 @@ interface StrainVerseAppIconProps {
   className?: string;
 }
 
-/** App mark: SpiritsVerse-style illustration — three hands passing a joint (public/logo-master.png). */
+/** App mark: exact three-hand joint pass, SpiritsVerse illustration style (public/logo-master.png). */
 const StrainVerseAppIcon: React.FC<StrainVerseAppIconProps> = ({ size = 24, className = '' }) => (
   <img
     src="/pwa-192.png"
