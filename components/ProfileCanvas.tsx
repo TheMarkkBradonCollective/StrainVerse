@@ -1,9 +1,10 @@
 // Fix: Corrected malformed import statement
 import React, { useState } from 'react';
 import { User, Post, Strain, ReactionType } from '../types';
-import { MessageSquare, Heart, Share2, ThumbsDown, Flame, FileText, Users, MapPin, Cigarette, Leaf as LeafIcon, Settings, ThumbsUp } from 'lucide-react';
+import { MessageSquare, Heart, Share2, ThumbsDown, Flame, FileText, Users, MapPin, Cigarette, Leaf as LeafIcon, Settings, ThumbsUp, Trash2 } from 'lucide-react';
 import ProfileSettingsModal from './ProfileSettingsModal';
 import { api } from '../services/supabaseClient';
+import { FullscreenImage } from './common';
 
 const DEFAULT_PROFILE_CSS = `.ys-profile-root {
   background: transparent;
@@ -43,6 +44,7 @@ interface ProfileCanvasProps {
   triedStrains: Strain[];
   refreshUser: () => Promise<void>;
   onReaction: (postId: string, type: ReactionType) => void;
+  onDelete?: (postId: string) => void;
 }
 
 const StatCard: React.FC<{ icon: React.ElementType; label: string; value: string | number; color: string; }> = ({ icon: Icon, label, value, color }) => (
@@ -58,7 +60,7 @@ const StatCard: React.FC<{ icon: React.ElementType; label: string; value: string
 );
 
 
-const ProfileCanvas: React.FC<ProfileCanvasProps> = ({ user, posts, isOwner, friendCount, triedStrains, refreshUser, onReaction }) => {
+const ProfileCanvas: React.FC<ProfileCanvasProps> = ({ user, posts, isOwner, friendCount, triedStrains, refreshUser, onReaction, onDelete }) => {
   const [activeTab, setActiveTab] = useState('Posts');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -68,6 +70,11 @@ const ProfileCanvas: React.FC<ProfileCanvasProps> = ({ user, posts, isOwner, fri
     setIsSettingsOpen(false);
   }
   
+  const handleDeletePost = (postId: string) => {
+    if (!onDelete || !window.confirm('Delete this post? This cannot be undone.')) return;
+    onDelete(postId);
+  };
+
   const reactionsToDisplay: ReactionType[] = ['THUMBS_UP', 'LIKE', 'FIRE', 'DISLIKE'];
   const reactionMap: Partial<Record<ReactionType, { icon: React.ReactNode, color: string, hoverColor: string }>> = {
       'THUMBS_UP': { icon: <ThumbsUp size={16} />, color: 'text-sky-500', hoverColor: 'hover:text-sky-500' },
@@ -196,8 +203,18 @@ const ProfileCanvas: React.FC<ProfileCanvasProps> = ({ user, posts, isOwner, fri
              {activeTab === 'Posts' && (
                 <div className="space-y-6">
                     {posts.map(post => (
-                    <div key={post.id} className="ys-card bg-[var(--bg-card)] rounded-xl p-6 backdrop-blur-sm border border-[var(--border)] hover:border-[var(--border)] transition-colors">
-                        <div className="flex items-center gap-3 mb-4">
+                    <div key={post.id} className="relative ys-card bg-[var(--bg-card)] rounded-xl p-6 backdrop-blur-sm border border-[var(--border)] hover:border-[var(--border)] transition-colors">
+                        {isOwner && onDelete && (
+                            <button
+                                type="button"
+                                onClick={() => handleDeletePost(post.id)}
+                                className="absolute top-4 right-4 p-1.5 text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 rounded-full transition-colors"
+                                aria-label="Delete post"
+                            >
+                                <Trash2 size={16} />
+                            </button>
+                        )}
+                        <div className="flex items-center gap-3 mb-4 pr-8">
                             <img src={post.userAvatar} className="w-10 h-10 rounded-full" alt="" />
                             <div>
                                 <h4 className="font-bold flex items-center">{post.userName} {post.mood && <span className="text-2xl ml-2">{post.mood}</span>}</h4>
@@ -206,7 +223,11 @@ const ProfileCanvas: React.FC<ProfileCanvasProps> = ({ user, posts, isOwner, fri
                         </div>
                         <p className="mb-4 leading-relaxed whitespace-pre-wrap">{post.content}</p>
                         {post.image && (
-                            <img src={post.image} alt="Post content" className="w-full rounded-lg mb-4 object-cover max-h-[400px]" />
+                            <FullscreenImage
+                                src={post.image}
+                                alt={`Post by ${post.userName}`}
+                                className="w-full rounded-lg mb-4 object-cover max-h-[400px]"
+                            />
                         )}
                         <div className="flex items-center gap-6 pt-4 border-t border-[var(--border)]">
                             <div className="flex gap-4">

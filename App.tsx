@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AppView, User, Post, Group, PostVisibility, ReactionType, GrowPlant, Story, GameScore, Strain, StrainPhoto, StrainReview, StrainChatMessage, ReportCategory } from './types';
-import { Sprout, Globe, MapPin, Users, User as UserIcon, Send, Flame, Image as ImageIcon, XCircle, Music, Leaf, Rocket, CloudFog, HelpCircle, Heart, Radio, Camera, Plus, Search, LogOut, Settings, Loader2, Wand2, Quote, ArrowLeft, Star, MessageSquare, Lightbulb, Copy, Filter } from 'lucide-react';
+import StrainVerseAppIcon from './components/icons/StrainVerseAppIcon';
+import { Globe, MapPin, Users, User as UserIcon, Send, Flame, Image as ImageIcon, XCircle, Music, Leaf, Rocket, CloudFog, HelpCircle, Heart, Radio, Camera, Plus, Search, LogOut, Settings, Loader2, Wand2, Quote, ArrowLeft, Star, MessageSquare, Lightbulb, Copy, Filter } from 'lucide-react';
 import ProfileCanvas from './components/ProfileCanvas';
 import { api, auth, supabase, isSupabaseConfigured, ensureStrainVerseProfile } from './services/supabaseClient';
 import LandingPage from './components/LandingPage';
@@ -20,7 +21,7 @@ import { getVisibleNavItems } from './navConfig';
 // --- VIEW CONFIGURATION ---
 // Fix: Add explicit type to viewConfig to handle optional 'ageGate' property.
 const viewConfig: Record<AppView, { title: string; icon: React.ElementType; ageGate?: boolean }> = {
-  [AppView.STRAINVERSE]: { title: 'StrainVerse', icon: Sprout },
+  [AppView.STRAINVERSE]: { title: 'StrainVerse', icon: StrainVerseAppIcon },
   [AppView.HERBHUB]: { title: 'HerbHub', icon: Globe },
   [AppView.MATCHIT]: { title: 'MatchIt', icon: Flame, ageGate: true },
   [AppView.SOCIALSESH]: { title: 'SocialSesh', icon: Users },
@@ -66,7 +67,7 @@ const calculateAge = (dobString?: string): number | null => {
 // --- SUB-COMPONENTS ---
 
 // 5. PROFILE VIEW
-const ProfileView: React.FC<{ user: User, posts: Post[], friendCount: number, triedStrains: Strain[], refreshUser: () => Promise<void>, onReaction: (postId: string, type: ReactionType) => void }> = ({ user, posts, friendCount, triedStrains, refreshUser, onReaction }) => {
+const ProfileView: React.FC<{ user: User, posts: Post[], friendCount: number, triedStrains: Strain[], refreshUser: () => Promise<void>, onReaction: (postId: string, type: ReactionType) => void, onDelete: (postId: string) => void }> = ({ user, posts, friendCount, triedStrains, refreshUser, onReaction, onDelete }) => {
     return (
         <ProfileCanvas 
             user={user} 
@@ -76,6 +77,7 @@ const ProfileView: React.FC<{ user: User, posts: Post[], friendCount: number, tr
             triedStrains={triedStrains} 
             refreshUser={refreshUser}
             onReaction={onReaction}
+            onDelete={onDelete}
         />
     )
 };
@@ -378,6 +380,18 @@ const App: React.FC = () => {
         await api.blockUser(user.id, blockedId);
         refreshCurrentViewPosts();
     };
+
+    const handleDeletePost = async (postId: string) => {
+        if (!user) return;
+        try {
+            await api.deletePost(postId, user.id);
+            setPosts(current => current.filter(p => p.id !== postId));
+            setMyPosts(current => current.filter(p => p.id !== postId));
+        } catch (error) {
+            console.error('Failed to delete post:', error);
+            alert('Could not delete this post. Please try again.');
+        }
+    };
     
     const handleSendMessage = async (text: string) => {
         if (!user || !activeGroup) return;
@@ -451,7 +465,7 @@ const App: React.FC = () => {
             case AppView.STRAINVERSE:
                 return <StrainVerseDirectory onStrainSelect={setSelectedStrain} />;
             case AppView.HERBHUB:
-                return <HighlineFeed user={user!} posts={posts} onReaction={handleFeedReaction} onPost={handlePost} stories={stories} isLoading={isPostsLoading} onAddStoryClick={() => setIsCreateStoryModalOpen(true)} />;
+                return <HighlineFeed user={user!} posts={posts} onReaction={handleFeedReaction} onPost={handlePost} onDelete={handleDeletePost} stories={stories} isLoading={isPostsLoading} onAddStoryClick={() => setIsCreateStoryModalOpen(true)} />;
             case AppView.MATCHIT:
                 return <MatchIt 
                             user={user!} 
@@ -466,7 +480,7 @@ const App: React.FC = () => {
             case AppView.SOCIALSESH:
                 return <SocialSeshDirectory groups={groups} onSelectGroup={selectGroup} refreshGroups={fetchGroups} user={user!} />;
             case AppView.PROFILE:
-                return <ProfileView user={user!} posts={myPosts} friendCount={friendCount} triedStrains={triedStrains} refreshUser={refreshUser} onReaction={handleMyPostsReaction} />;
+                return <ProfileView user={user!} posts={myPosts} friendCount={friendCount} triedStrains={triedStrains} refreshUser={refreshUser} onReaction={handleMyPostsReaction} onDelete={handleDeletePost} />;
             default:
                 return <div className="p-8 text-center">Select a view</div>;
         }

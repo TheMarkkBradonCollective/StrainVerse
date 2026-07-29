@@ -507,6 +507,11 @@ export const api = {
     if (error) throw error;
   },
 
+  deletePost: async (postId: string, userId: string): Promise<void> => {
+    const { error } = await strainVerse().from('posts').delete().eq('id', postId).eq('user_id', userId);
+    if (error) throw error;
+  },
+
   getCommentsForPost: async (postId: string): Promise<PostComment[]> => {
       const { data, error } = await strainVerse()
           .from('post_comments')

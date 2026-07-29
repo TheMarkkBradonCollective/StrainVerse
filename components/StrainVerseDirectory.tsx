@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Strain } from '../types';
 import { api } from '../services/supabaseClient';
-import { Search, Sprout, Star, Image as ImageIcon, Loader2, Flame, Diamond, LayoutGrid, List } from 'lucide-react';
+import { Search, Star, Image as ImageIcon, Loader2, Flame, Diamond, LayoutGrid, List } from 'lucide-react';
+import StrainVerseAppIcon from './icons/StrainVerseAppIcon';
 import Logo from './Logo';
 
 interface StrainVerseDirectoryProps {
@@ -251,7 +252,7 @@ const StrainVerseDirectory: React.FC<StrainVerseDirectoryProps> = ({ onStrainSel
             
             <div className="my-6">
                  <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-                    <h2 className="text-xl font-extrabold flex items-center gap-2"><Sprout size={20} className="text-[var(--accent)]" /> Explore Strains</h2>
+                    <h2 className="text-xl font-extrabold flex items-center gap-2"><StrainVerseAppIcon size={20} /> Explore Strains</h2>
                     <div className="hidden sm:flex gap-2">
                       <TabButton label="All" />
                       <TabButton label="Sativa" />

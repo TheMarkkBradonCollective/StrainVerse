@@ -1,6 +1,7 @@
 import type React from 'react';
 import { AppView } from './types';
-import { Sprout, Globe, Users, User as UserIcon, Flame } from 'lucide-react';
+import { Globe, Users, User as UserIcon, Flame } from 'lucide-react';
+import StrainVerseAppIcon from './components/icons/StrainVerseAppIcon';
 
 export interface NavItem {
   view: AppView;
@@ -13,7 +14,7 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { view: AppView.HERBHUB, label: 'HerbHub', icon: Globe },
   { view: AppView.MATCHIT, label: 'MatchIt', icon: Flame, ageGate: true },
-  { view: AppView.STRAINVERSE, label: 'StrainVerse', icon: Sprout },
+  { view: AppView.STRAINVERSE, label: 'StrainVerse', icon: StrainVerseAppIcon },
   { view: AppView.SOCIALSESH, label: 'SocialSesh', icon: Users },
   { view: AppView.PROFILE, label: 'My Stash', icon: UserIcon },
 ];
