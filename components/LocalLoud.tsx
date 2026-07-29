@@ -1,6 +1,6 @@
-import React, { useState, useMemo, FC } from 'react';
+import React, { useState, FC } from 'react';
 import { User, Post, PostVisibility, ReactionType, Story } from '../types';
-import { Send, Image as ImageIcon, XCircle, Music, Leaf, Rocket, Flame, MapPin, Plus, Wand2, CloudFog, HelpCircle, Heart, Compass, Calendar, BarChart2 } from 'lucide-react';
+import { Send, Image as ImageIcon, XCircle, Flame, MapPin, Plus, CloudFog, HelpCircle, Heart, Compass, Calendar, BarChart2 } from 'lucide-react';
 import CreatePostModal from './CreatePostModal';
 import { StrainStories, SkeletonPost } from './common';
 
@@ -14,28 +14,18 @@ const PlaceholderTab: FC<{ title: string; icon: React.ElementType }> = ({ title,
 
 const LocalLoud: React.FC<{ user: User, posts: Post[], onReaction: (postId: string, type: ReactionType) => void, onPost: (content: string, visibility: PostVisibility, image?: File | null, meta?: any, isMatchIt?: boolean) => void, stories: Story[], isLoading: boolean }> = ({ user, posts, onReaction, onPost, stories, isLoading }) => {
     const [activeTab, setActiveTab] = useState<'Feed' | 'Trends' | 'Hotspots' | 'Events'>('Feed');
-    const [matchItOnly, setMatchItOnly] = useState(false);
     
     // Inline post creator state
     const [content, setContent] = useState('');
     const [image, setImage] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
-    const [isMatchIt, setIsMatchIt] = useState(false);
     const [isPostModalOpen, setPostModalOpen] = useState(false);
 
-    const filteredPosts = useMemo(() => {
-        if (matchItOnly) {
-            return posts.filter(p => p.isMatchIt);
-        }
-        return posts;
-    }, [posts, matchItOnly]);
-
     const handlePost = () => {
-        onPost(content, 'LOCAL_LOUD', image, {}, isMatchIt);
+        onPost(content, 'LOCAL_LOUD', image, {}, false);
         setContent('');
         setImage(null);
         setImagePreview(null);
-        setIsMatchIt(false);
     };
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -76,23 +66,9 @@ const LocalLoud: React.FC<{ user: User, posts: Post[], onReaction: (postId: stri
                         </div>
                     )}
                     <div className="flex justify-between items-center pt-2">
-                        <div className="flex gap-3 items-center flex-wrap">
+                        <div className="flex gap-2 items-center">
                             <label htmlFor="image-upload-local" className="p-2 text-[var(--text-muted)] hover:text-[var(--accent)] cursor-pointer rounded-full hover:bg-[var(--accent-light)] transition-colors"><ImageIcon size={20} /></label>
                             <input id="image-upload-local" type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
-                            <div className="flex items-center gap-2">
-                                <Flame size={14} className={isMatchIt ? 'text-orange-500' : 'text-[var(--text-muted)]'} />
-                                <span className={`text-xs font-bold ${isMatchIt ? 'text-orange-600' : 'text-[var(--text-muted)]'}`}>Show in MatchIt</span>
-                                <button
-                                  type="button"
-                                  role="switch"
-                                  aria-checked={isMatchIt}
-                                  aria-label="Show in MatchIt"
-                                  onClick={() => setIsMatchIt(!isMatchIt)}
-                                  className={`relative inline-flex items-center h-6 w-11 rounded-full transition-colors ${isMatchIt ? 'bg-orange-500' : 'bg-[var(--border-strong)]'}`}
-                                >
-                                  <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${isMatchIt ? 'translate-x-6' : 'translate-x-1'}`} />
-                                </button>
-                            </div>
                         </div>
                         <button onClick={handlePost} disabled={!content.trim()} className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-bold py-2 px-6 rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2">
                             Spark It <Send size={14} />
@@ -108,7 +84,7 @@ const LocalLoud: React.FC<{ user: User, posts: Post[], onReaction: (postId: stri
             {/* Post List */}
             {isLoading ? (
                 <div><SkeletonPost /><SkeletonPost /><SkeletonPost /></div>
-            ) : filteredPosts.map(post => (
+            ) : posts.map(post => (
                 <div key={post.id} className="p-4 border-b border-[var(--border)] hover:bg-[var(--bg-hover)] transition-colors">
                     {post.distance && (<div className="text-xs text-[var(--accent)] font-bold mb-2 flex items-center gap-1"><MapPin size={12}/> {post.distance.toFixed(1)}km away</div>)}
                     <div className="flex gap-3">
@@ -118,7 +94,6 @@ const LocalLoud: React.FC<{ user: User, posts: Post[], onReaction: (postId: stri
                                 <h4 className="font-bold text-[var(--text-main)]">{post.userName}</h4>
                                 <span className="text-sm text-[var(--text-muted)]">@{post.userName.toLowerCase()}</span>
                                 <span className="text-sm text-[var(--text-muted)]">· {new Date(post.timestamp).toLocaleDateString()}</span>
-                                {post.isMatchIt && (<span className="bg-orange-500/20 text-orange-400 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"><Flame size={12} /> MATCH IT</span>)}
                             </div>
                             <p className="text-[var(--text-main)] whitespace-pre-wrap mt-1">{post.content}</p>
                             {post.image && <img src={post.image} className="mt-3 rounded-2xl border border-[var(--border)] max-h-96 w-full object-cover" />}
@@ -157,15 +132,7 @@ const LocalLoud: React.FC<{ user: User, posts: Post[], onReaction: (postId: stri
     return (
         <div className="flex flex-col h-full">
             <div className="p-4 border-b border-[var(--border)] sticky top-0 bg-[var(--bg-main)]/80 backdrop-blur-sm z-10">
-                <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-bold">Local Loud</h2>
-                    <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-orange-400">MatchIt Only</span>
-                        <button onClick={() => setMatchItOnly(!matchItOnly)} className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors ${matchItOnly ? 'bg-orange-500' : 'bg-[var(--bg-input)]'}`}>
-                            <span className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform ${matchItOnly ? 'translate-x-6' : 'translate-x-1'}`} />
-                        </button>
-                    </div>
-                </div>
+                <h2 className="text-lg font-bold">Local Loud</h2>
             </div>
             <div className="border-b border-[var(--border)] flex">
                 <TabButton label="Feed" icon={MapPin} />

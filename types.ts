@@ -88,6 +88,26 @@ export interface User {
   dateOfBirth?: string; // YYYY-MM-DD
   status?: 'active' | 'shadow_banned' | 'banned';
   role?: UserRole;
+  /** MatchIt presence — show this person in the nearby people feed */
+  showInMatchIt?: boolean;
+  matchLookingFor?: string;
+}
+
+/** Nearby person card in the MatchIt people feed */
+export interface MatchPerson {
+  id: string;
+  name: string;
+  handle: string;
+  avatar: string;
+  bio: string;
+  city?: string;
+  state?: string;
+  latitude?: number;
+  longitude?: number;
+  distance?: number | null;
+  matchLookingFor?: string;
+  smokingStyle?: string;
+  favStrains?: string[];
 }
 
 export type PostVisibility =
@@ -235,7 +255,7 @@ export type MatchItInteractionStatus = 'PENDING' | 'MATCHED' | 'DECLINED';
 
 export interface MatchItInteraction {
     id: string;
-    post_id: string;
+    post_id?: string | null;
     sender_id: string;
     sender_name: string;
     sender_avatar: string;

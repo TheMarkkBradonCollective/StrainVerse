@@ -230,9 +230,11 @@ const App: React.FC = () => {
     const refreshCurrentViewPosts = async () => {
         if (!user) return;
         
-        let viewType: 'HIGHLINE' | 'MATCHIT' | 'FRIENDS' | undefined = undefined;
+        // MatchIt is a people feed now — it loads its own data
+        if (currentView === AppView.MATCHIT) return;
+
+        let viewType: 'HIGHLINE' | 'FRIENDS' | undefined = undefined;
         if (currentView === AppView.HERBHUB) viewType = 'HIGHLINE';
-        if (currentView === AppView.MATCHIT) viewType = 'MATCHIT';
 
         if (viewType) {
              setIsPostsLoading(true);
@@ -361,14 +363,19 @@ const App: React.FC = () => {
     const handleReportPost = async (postId: string, reportedUserId: string, category: ReportCategory, reason: string) => {
         if (!user) return;
         await api.reportPost(user.id, reportedUserId, postId, category, reason);
-        // Optionally show a confirmation message
+        alert('Report submitted. Thank you for helping keep the community safe.');
+    };
+
+    const handleReportUser = async (reportedUserId: string, category: ReportCategory, reason: string) => {
+        if (!user) return;
+        await api.reportPost(user.id, reportedUserId, null, category, reason);
         alert('Report submitted. Thank you for helping keep the community safe.');
     };
 
     const handleBlockUser = async (blockedId: string) => {
         if (!user) return;
         await api.blockUser(user.id, blockedId);
-        refreshCurrentViewPosts(); // Refresh to filter out blocked user's posts
+        refreshCurrentViewPosts();
     };
     
     const handleSendMessage = async (text: string) => {
@@ -458,16 +465,13 @@ const App: React.FC = () => {
             case AppView.MATCHIT:
                 return <MatchIt 
                             user={user!} 
-                            posts={posts} 
-                            onReaction={handleFeedReaction} 
-                            onPost={handlePost} 
-                            isLoading={isPostsLoading} 
                             userAge={userAge} 
-                            onReportPost={handleReportPost} 
+                            onReportUser={handleReportUser} 
                             onBlockUser={handleBlockUser} 
                             onMatch={selectGroup} 
                             groups={groups} 
                             onSelectGroup={selectGroup}
+                            refreshUser={refreshUser}
                         />;
             case AppView.SOCIALSESH:
                 return <SocialSeshDirectory groups={groups} onSelectGroup={selectGroup} refreshGroups={fetchGroups} user={user!} />;

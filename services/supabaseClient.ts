@@ -1,5 +1,5 @@
 import { createClient, type User as AuthUser } from '@supabase/supabase-js';
-import { User, Post, Group, ChatMessage, PostVisibility, ReactionType, SafetyReport, GrowPlant, Story, GameScore, Strain, StrainPhoto, StrainReview, StrainChatMessage, PostComment, ReportCategory, MatchItInteraction } from '../types';
+import { User, Post, Group, ChatMessage, PostVisibility, ReactionType, SafetyReport, GrowPlant, Story, GameScore, Strain, StrainPhoto, StrainReview, StrainChatMessage, PostComment, ReportCategory, MatchItInteraction, MatchPerson } from '../types';
 
 const sanitizeHandle = (raw: string): string => {
   const cleaned = raw.toLowerCase().replace(/^@/, '').replace(/[^a-z0-9_]/g, '');
@@ -31,7 +31,22 @@ const mapProfileRow = (data: Record<string, unknown>): User => {
     dateOfBirth: data.date_of_birth,
     status: data.status,
     role: data.role,
+    showInMatchIt: Boolean(data.show_in_matchit),
+    matchLookingFor: typeof data.matchit_looking_for === 'string' ? data.matchit_looking_for : undefined,
+    favStrains: Array.isArray(data.fav_strains) ? (data.fav_strains as string[]) : undefined,
+    smokingStyle: data.smoking_style as User['smokingStyle'],
   } as User;
+};
+
+const calculateAgeFromDob = (dob?: string | null): number | null => {
+  if (!dob) return null;
+  const birthDate = new Date(dob);
+  if (Number.isNaN(birthDate.getTime())) return null;
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+  return age;
 };
 
 const generateUniqueHandle = async (baseHandle: string, userId: string): Promise<string> => {
@@ -297,7 +312,7 @@ export const api = {
   },
 
   updateProfile: async (userId: string, updates: Partial<User>) => {
-    const { name, bio, city, state, favStrains, smokingStyle, dateOfBirth } = updates;
+    const { name, bio, city, state, favStrains, smokingStyle, dateOfBirth, showInMatchIt, matchLookingFor } = updates;
     
     // Map application's camelCase to database's snake_case
     const dbPayload: { [key: string]: any } = {};
@@ -309,6 +324,8 @@ export const api = {
     if (favStrains !== undefined) dbPayload.fav_strains = favStrains;
     if (smokingStyle !== undefined) dbPayload.smoking_style = smokingStyle;
     if (dateOfBirth !== undefined) dbPayload.date_of_birth = dateOfBirth;
+    if (showInMatchIt !== undefined) dbPayload.show_in_matchit = showInMatchIt;
+    if (matchLookingFor !== undefined) dbPayload.matchit_looking_for = matchLookingFor;
     
     if (Object.keys(dbPayload).length === 0) return;
     
@@ -546,14 +563,15 @@ export const api = {
       }
   },
 
-  reportPost: async (reporterId: string, reportedUserId: string, postId: string, category: ReportCategory, reason: string) => {
-      const { error } = await strainVerse().from('reports').insert({
+  reportPost: async (reporterId: string, reportedUserId: string, postId: string | null, category: ReportCategory, reason: string) => {
+      const payload: Record<string, unknown> = {
           reporter_id: reporterId,
           reported_user_id: reportedUserId,
-          post_id: postId,
           category,
           reason,
-      });
+      };
+      if (postId) payload.post_id = postId;
+      const { error } = await strainVerse().from('reports').insert(payload);
       if (error) {
           console.error("Error submitting report:", error);
           throw error;
@@ -696,26 +714,100 @@ export const api = {
   },
 
   // --- MatchIt Vibe System ---
-  sendVibe: async (postId: string, senderId: string, receiverId: string, message: string | null, type: 'TAP' | 'SPARK'): Promise<{ interaction: MatchItInteraction | null, mutualMatch: Group | null }> => {
-    // Check for existing interaction
-    const { data: existing, error: selectError } = await strainVerse().from('matchit_interactions')
-        .select('id').eq('post_id', postId).eq('sender_id', senderId)
+  setMatchItPresence: async (userId: string, showInMatchIt: boolean, lookingFor?: string) => {
+    const payload: Record<string, unknown> = { show_in_matchit: showInMatchIt };
+    if (lookingFor !== undefined) payload.matchit_looking_for = lookingFor || null;
+    const { error } = await strainVerse().from('profiles').update(payload).eq('id', userId);
+    if (error) {
+      console.error('Error updating MatchIt presence:', error);
+      throw error;
+    }
+  },
+
+  getMatchItPeople: async (user: User): Promise<MatchPerson[]> => {
+    if (!user.city || !user.state) return [];
+
+    const blockedUserIds = await api.getBlockedUserIds(user.id);
+    const { data, error } = await strainVerse()
+      .from('profiles')
+      .select('id, name, handle, avatar, bio, city, state, latitude, longitude, smoking_style, fav_strains, matchit_looking_for, show_in_matchit, date_of_birth, status')
+      .eq('show_in_matchit', true)
+      .eq('city', user.city)
+      .eq('state', user.state)
+      .neq('id', user.id);
+
+    if (error) {
+      console.error('Error fetching MatchIt people:', error);
+      return [];
+    }
+
+    const radius = user.distanceRadius || 25;
+    const people: MatchPerson[] = (data || [])
+      .filter((p: any) => {
+        if (p.status === 'banned' || p.status === 'shadow_banned') return false;
+        if (blockedUserIds.includes(p.id)) return false;
+        const age = calculateAgeFromDob(p.date_of_birth);
+        if (age !== null && age < 21) return false;
+        return true;
+      })
+      .map((p: any) => {
+        let dist: number | null = null;
+        if (user.latitude && user.longitude && p.latitude && p.longitude) {
+          dist = calculateDistance(user.latitude, user.longitude, p.latitude, p.longitude);
+        }
+        return {
+          id: p.id,
+          name: p.name,
+          handle: p.handle,
+          avatar: p.avatar,
+          bio: p.bio || '',
+          city: p.city,
+          state: p.state,
+          latitude: p.latitude,
+          longitude: p.longitude,
+          distance: dist,
+          matchLookingFor: p.matchit_looking_for || undefined,
+          smokingStyle: p.smoking_style || undefined,
+          favStrains: Array.isArray(p.fav_strains) ? p.fav_strains : undefined,
+        } as MatchPerson;
+      })
+      .filter((p) => p.distance == null || p.distance <= radius)
+      .sort((a, b) => {
+        if (a.distance == null && b.distance == null) return a.name.localeCompare(b.name);
+        if (a.distance == null) return 1;
+        if (b.distance == null) return -1;
+        return a.distance - b.distance;
+      });
+
+    return people;
+  },
+
+  sendVibe: async (senderId: string, receiverId: string, message: string | null, type: 'TAP' | 'SPARK', postId?: string | null): Promise<{ interaction: MatchItInteraction | null, mutualMatch: Group | null }> => {
+    let existingQuery = strainVerse().from('matchit_interactions').select('id').eq('sender_id', senderId).eq('receiver_id', receiverId);
+    if (postId) {
+      existingQuery = existingQuery.eq('post_id', postId);
+    } else {
+      existingQuery = existingQuery.is('post_id', null);
+    }
+    const { data: existing, error: selectError } = await existingQuery;
 
     if (selectError) {
         console.error("Error checking existing vibe:", selectError);
         throw selectError;
     }
-    if (existing.length > 0) {
-        throw new Error("You've already sent a vibe to this post.");
+    if (existing && existing.length > 0) {
+        throw new Error("You've already sent a vibe to this person.");
     }
     
-    const { data, error } = await strainVerse().from('matchit_interactions').insert({
-        post_id: postId,
+    const insertPayload: Record<string, unknown> = {
         sender_id: senderId,
         receiver_id: receiverId,
         message,
         type,
-    }).select('*, sender:profiles!sender_id(name, avatar)').single();
+    };
+    if (postId) insertPayload.post_id = postId;
+
+    const { data, error } = await strainVerse().from('matchit_interactions').insert(insertPayload).select('*, sender:profiles!sender_id(name, avatar)').single();
 
     if (error) {
         console.error("Error sending vibe:", error);
@@ -735,13 +827,11 @@ export const api = {
             .eq('receiver_id', senderId)
             .eq('type', 'SPARK')
             .eq('status', 'PENDING')
-            .single();
+            .maybeSingle();
         
         if (mutual) {
-            // MUTUAL SPARK!
             const matchGroup = await api.createMatchChat(senderId, receiverId);
             if(matchGroup) {
-                // Update both interactions
                 await strainVerse().from('matchit_interactions').update({ status: 'MATCHED', group_id: matchGroup.id }).or(`id.eq.${data.id},id.eq.${mutual.id}`);
                 mutualMatch = matchGroup;
             }
@@ -779,7 +869,6 @@ export const api = {
               const { error } = await strainVerse().from('matchit_interactions').update({ status: 'MATCHED', group_id: matchGroup.id }).eq('id', interactionId);
               if (error) {
                   console.error("Error updating interaction status:", error);
-                  // Should probably delete the created group if this fails...
                   return null;
               }
               return matchGroup;
@@ -793,7 +882,6 @@ export const api = {
       return null;
   },
   
-  // Gets all interactions related to a set of posts for the current user
   getInteractionsForPosts: async (postIds: string[], userId: string): Promise<MatchItInteraction[]> => {
       if (postIds.length === 0) return [];
       const { data, error } = await strainVerse()
@@ -808,8 +896,27 @@ export const api = {
       }
       return data.map(i => ({
         ...i,
-        sender_name: i.sender.name,
-        sender_avatar: i.sender.avatar,
+        sender_name: i.sender?.name,
+        sender_avatar: i.sender?.avatar,
+      })) as MatchItInteraction[];
+  },
+
+  getMatchItInteractionsForUser: async (userId: string): Promise<MatchItInteraction[]> => {
+      const { data, error } = await strainVerse()
+        .from('matchit_interactions')
+        .select('*, sender:profiles!sender_id(name, avatar)')
+        .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (error) {
+        console.error('Error fetching MatchIt interactions:', error);
+        return [];
+      }
+      return (data || []).map(i => ({
+        ...i,
+        sender_name: i.sender?.name,
+        sender_avatar: i.sender?.avatar,
       })) as MatchItInteraction[];
   },
 
