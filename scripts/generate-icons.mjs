@@ -67,7 +67,7 @@ await sharp({
     width: ogWidth,
     height: ogHeight,
     channels: 4,
-    background: { r: 10, g: 10, b: 10, alpha: 1 },
+    background: isDarkMaster ? { r: 10, g: 10, b: 10, alpha: 1 } : { r: 0, g: 0, b: 0, alpha: 0 },
   },
 })
   .composite([{ input: ogPadded, gravity: 'centre' }])
