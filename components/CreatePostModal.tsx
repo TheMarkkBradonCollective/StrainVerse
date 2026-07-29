@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { PostVisibility } from '../types';
-import { Send, Image as ImageIcon, XCircle, Music, Leaf, Rocket, Wand2, Plus, Flame, Clock, Users, TestTube2, Loader2, AlertTriangle } from 'lucide-react';
+import { Send, Image as ImageIcon, XCircle, Leaf, Rocket, Plus, Flame, Clock, Users, Loader2, AlertTriangle } from 'lucide-react';
 
 const CreatePostModal: React.FC<{
   onClose: () => void;
@@ -14,6 +14,7 @@ const CreatePostModal: React.FC<{
   const [showMeta, setShowMeta] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showInMatchIt, setShowInMatchIt] = useState(isMatchItPost);
   
   // Generic Meta
   const [highLevel, setHighLevel] = useState(5);
@@ -37,21 +38,20 @@ const CreatePostModal: React.FC<{
   ];
   const [duration, setDuration] = useState(durationOptions[2].value);
 
-
   const moods = ['🫠', '🤤', '🤪', '😂', '🤯', '😮‍💨'];
-  
 
   const handlePost = async () => {
     setIsLoading(true);
     setError(null);
     const meta: any = { highLevel, soundtrack: '', mood, strain };
-    if (isMatchItPost) {
+    if (showInMatchIt) {
         meta.lookingFor = lookingFor;
         meta.duration = duration;
     }
 
     try {
-        await onPost(content, isMatchItPost ? 'LOCAL_LOUD' : (isLocal ? 'LOCAL_LOUD' : 'HIGHLINE'), image, meta, isMatchItPost);
+        const visibility = showInMatchIt || isLocal || isMatchItPost ? 'LOCAL_LOUD' : 'HIGHLINE';
+        await onPost(content, visibility, image, meta, showInMatchIt);
         onClose();
     } catch (e: any) {
         setError(e.message || "An unexpected error occurred.");
@@ -76,6 +76,46 @@ const CreatePostModal: React.FC<{
       <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-2 flex items-center gap-2">
         <Icon size={14} /> {text}
       </label>
+  );
+
+  const MatchItToggle: React.FC = () => (
+    <div className={`flex items-center justify-between gap-3 p-3 rounded-2xl border transition-colors ${
+      showInMatchIt
+        ? 'bg-orange-500/10 border-orange-500/40'
+        : 'bg-[var(--bg-input)] border-[var(--border)]'
+    }`}>
+      <div className="flex items-center gap-3 min-w-0">
+        <span className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${
+          showInMatchIt ? 'bg-orange-500 text-white' : 'bg-[var(--bg-card)] text-[var(--text-muted)]'
+        }`}>
+          <Flame size={16} />
+        </span>
+        <div className="min-w-0">
+          <p className={`text-sm font-bold ${showInMatchIt ? 'text-orange-600' : 'text-[var(--text-main)]'}`}>
+            Show in MatchIt
+          </p>
+          <p className="text-xs text-[var(--text-muted)] truncate">
+            {showInMatchIt ? 'Visible to people nearby looking to connect' : 'Keep this post off the MatchIt feed'}
+          </p>
+        </div>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={showInMatchIt}
+        aria-label="Show in MatchIt"
+        onClick={() => setShowInMatchIt(prev => !prev)}
+        className={`relative inline-flex items-center h-7 w-12 rounded-full transition-colors flex-shrink-0 ${
+          showInMatchIt ? 'bg-orange-500' : 'bg-[var(--border-strong)]'
+        }`}
+      >
+        <span
+          className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${
+            showInMatchIt ? 'translate-x-6' : 'translate-x-1'
+          }`}
+        />
+      </button>
+    </div>
   );
 
   const renderMatchItForm = () => (
@@ -115,31 +155,32 @@ const CreatePostModal: React.FC<{
 
   return (
       <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={onClose}>
-        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl w-full max-w-lg flex flex-col shadow-2xl shadow-[var(--shadow-color)]" onClick={e => e.stopPropagation()}>
+        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-[1.5rem] w-full max-w-lg flex flex-col shadow-2xl shadow-[var(--shadow-color)]" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
                 <h2 className="text-lg font-bold flex items-center gap-2">
-                    {isMatchItPost ? <><Flame size={18} className="text-orange-400" /> Create MatchIt Post</> : 'Create a Post'}
+                    {showInMatchIt ? <><Flame size={18} className="text-orange-500" /> Create MatchIt Post</> : 'Create a Post'}
                 </h2>
                 <button onClick={onClose} className="p-2 hover:bg-[var(--bg-hover)] rounded-full"><XCircle size={20} /></button>
             </div>
-            <div className="p-4 space-y-4">
+            <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
                  <textarea
                     value={content}
                     onChange={e => setContent(e.target.value)}
-                    placeholder={isMatchItPost ? "What's the vibe? e.g., 'Looking for someone to chill and listen to music with...'" : "What's sparking up?"}
+                    placeholder={showInMatchIt ? "What's the vibe? e.g., 'Looking for someone to chill and listen to music with...'" : "What's sparking up?"}
                     className="w-full bg-transparent p-2 focus:outline-none resize-none text-lg placeholder:text-[var(--text-muted)]"
-                    rows={isMatchItPost ? 3 : 4}
+                    rows={showInMatchIt ? 3 : 4}
                 />
+
+                <MatchItToggle />
                 
-                {isMatchItPost ? renderMatchItForm() : null}
+                {showInMatchIt ? renderMatchItForm() : null}
                 
                 {error && (
-                    <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-xs flex items-center gap-2">
+                    <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 text-xs flex items-center gap-2">
                         <AlertTriangle size={16} />
                         <span>{error}</span>
                     </div>
                 )}
-
 
                 {imagePreview && (
                     <div className="relative p-2 group">
@@ -163,15 +204,15 @@ const CreatePostModal: React.FC<{
                         ))}
                     </div>
                 </div>
-                {showMeta && !isMatchItPost && renderHighlineForm()}
+                {showMeta && !showInMatchIt && renderHighlineForm()}
             </div>
             <div className="flex justify-between items-center p-4 border-t border-[var(--border)]">
                 <div className="flex gap-1 items-center">
                     <label htmlFor="image-upload-modal" className="p-2 text-[var(--text-muted)] hover:text-[var(--accent)] cursor-pointer rounded-full hover:bg-[var(--accent-light)] transition-colors"><ImageIcon size={20} /></label>
                     <input id="image-upload-modal" type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
-                    {!isMatchItPost && <button onClick={() => setShowMeta(!showMeta)} className={`p-2 rounded-full transition-colors ${showMeta ? 'text-[var(--accent)] bg-[var(--accent-light)]' : 'text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent-light)]'}`}><Plus size={20} /></button>}
+                    {!showInMatchIt && <button onClick={() => setShowMeta(!showMeta)} className={`p-2 rounded-full transition-colors ${showMeta ? 'text-[var(--accent)] bg-[var(--accent-light)]' : 'text-[var(--text-muted)] hover:text-[var(--accent)] hover:bg-[var(--accent-light)]'}`}><Plus size={20} /></button>}
                 </div>
-                <button onClick={handlePost} disabled={!content.trim() || isLoading} className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-bold py-2 px-6 rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2">
+                <button onClick={handlePost} disabled={!content.trim() || isLoading} className={`font-bold py-2 px-6 rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 text-white ${showInMatchIt ? 'bg-orange-500 hover:bg-orange-600' : 'bg-[var(--accent)] hover:bg-[var(--accent-hover)]'}`}>
                     {isLoading ? <Loader2 className="animate-spin" size={16} /> : 'Spark It'}
                     <Send size={14} />
                 </button>

@@ -76,12 +76,23 @@ const LocalLoud: React.FC<{ user: User, posts: Post[], onReaction: (postId: stri
                         </div>
                     )}
                     <div className="flex justify-between items-center pt-2">
-                        <div className="flex gap-2 items-center">
+                        <div className="flex gap-3 items-center flex-wrap">
                             <label htmlFor="image-upload-local" className="p-2 text-[var(--text-muted)] hover:text-[var(--accent)] cursor-pointer rounded-full hover:bg-[var(--accent-light)] transition-colors"><ImageIcon size={20} /></label>
                             <input id="image-upload-local" type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
-                             <button onClick={() => setIsMatchIt(!isMatchIt)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${isMatchIt ? 'bg-orange-500/20 border-orange-500/50 text-orange-400' : 'bg-transparent border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--border-strong)]'}`}>
-                                <Flame size={14} /> MatchIt
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <Flame size={14} className={isMatchIt ? 'text-orange-500' : 'text-[var(--text-muted)]'} />
+                                <span className={`text-xs font-bold ${isMatchIt ? 'text-orange-600' : 'text-[var(--text-muted)]'}`}>Show in MatchIt</span>
+                                <button
+                                  type="button"
+                                  role="switch"
+                                  aria-checked={isMatchIt}
+                                  aria-label="Show in MatchIt"
+                                  onClick={() => setIsMatchIt(!isMatchIt)}
+                                  className={`relative inline-flex items-center h-6 w-11 rounded-full transition-colors ${isMatchIt ? 'bg-orange-500' : 'bg-[var(--border-strong)]'}`}
+                                >
+                                  <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${isMatchIt ? 'translate-x-6' : 'translate-x-1'}`} />
+                                </button>
+                            </div>
                         </div>
                         <button onClick={handlePost} disabled={!content.trim()} className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-bold py-2 px-6 rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2">
                             Spark It <Send size={14} />
