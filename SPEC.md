@@ -79,7 +79,7 @@ index.html → index.tsx → App.tsx
 
 | View | Label | Icon | Age gate |
 |------|-------|------|----------|
-| `STRAINVERSE` | StrainVerse | Cannabis leaf | No |
+| `STRAINVERSE` | StrainVerse | Cannabis leaf (smoke mark) | No |
 | `HERBHUB` | HerbHub | Globe | No |
 | `MATCHIT` | MatchIt | Flame | **21+** |
 | `SOCIALSESH` | SocialSesh | Users | No |

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AppView, User, Post, Group, PostVisibility, ReactionType, GrowPlant, Story, GameScore, Strain, StrainPhoto, StrainReview, StrainChatMessage, ReportCategory } from './types';
-import CannabisLeafIcon from './components/icons/CannabisLeafIcon';
+import StrainVerseAppIcon from './components/icons/StrainVerseAppIcon';
 import { Globe, MapPin, Users, User as UserIcon, Send, Flame, Image as ImageIcon, XCircle, Music, Leaf, Rocket, CloudFog, HelpCircle, Heart, Radio, Camera, Plus, Search, LogOut, Settings, Loader2, Wand2, Quote, ArrowLeft, Star, MessageSquare, Lightbulb, Copy, Filter } from 'lucide-react';
 import ProfileCanvas from './components/ProfileCanvas';
 import { api, auth, supabase, isSupabaseConfigured, ensureStrainVerseProfile } from './services/supabaseClient';
@@ -20,7 +20,7 @@ import InstallPrompt from './components/InstallPrompt';
 // --- VIEW CONFIGURATION ---
 // Fix: Add explicit type to viewConfig to handle optional 'ageGate' property.
 const viewConfig: Record<AppView, { title: string; icon: React.ElementType; ageGate?: boolean }> = {
-  [AppView.STRAINVERSE]: { title: 'StrainVerse', icon: CannabisLeafIcon },
+  [AppView.STRAINVERSE]: { title: 'StrainVerse', icon: StrainVerseAppIcon },
   [AppView.HERBHUB]: { title: 'HerbHub', icon: Globe },
   [AppView.MATCHIT]: { title: 'MatchIt', icon: Flame, ageGate: true },
   [AppView.SOCIALSESH]: { title: 'SocialSesh', icon: Users },
