@@ -1,23 +1,26 @@
--- StrainVerse Complete Database Setup
+-- =============================================================================
+-- StrainVerse COMPLETE SCHEMA (canonical — run this file for all DB updates)
+-- =============================================================================
 -- Shared Verse Supabase project: https://vxahlxhrmypxxkrudqbd.supabase.co
 -- Ecosystem: Cookbook.io, StrainVerse, SpiritsVerse (one auth.users, per-app schemas)
 --
--- RUN THIS ENTIRE FILE in the Supabase SQL Editor (not individual statements).
--- Safe to re-run: IF NOT EXISTS, DROP POLICY IF EXISTS, idempotent inserts.
+-- RUN THIS ENTIRE FILE in the Supabase SQL Editor whenever you pull app updates.
+-- Safe to re-run continuously: IF NOT EXISTS, DROP POLICY IF EXISTS, idempotent DDL.
 --
 -- What this script does:
 --   1. Creates/repairs PostgREST schema exposure (fixes PGRST002 / login failures)
---   2. Creates all StrainVerse tables, views, triggers, RLS policies
---   3. Creates storage bucket + policies
---   4. Backfills profiles for existing auth.users (Cookbook / SpiritsVerse cross-app users)
---   5. Registers StrainVerse with the Data API
+--   2. Creates/updates all StrainVerse tables, views, triggers, RLS policies
+--   3. Applies column additions, indexes, and migrations from prior split SQL files
+--   4. Creates storage bucket + policies
+--   5. Backfills profiles for existing auth.users (Cookbook / SpiritsVerse cross-app)
+--   6. Registers StrainVerse with the Data API and reloads PostgREST
 --
 -- After running:
 --   Dashboard -> Project Settings -> Data API -> Exposed schemas must include StrainVerse
 --   (remove dead entries: strain, strainverse)
 --
--- Quick fix only (schema cache / can't log in): sql/repair-postgrest.sql
--- After wipe with sql/wipe-verse.sql: run sql/complete-setup.sql (or sql/bootstrap-strainverse.sql for sign-up only)
+-- Optional strain data (not schema): sql/seed-strains.sql, sql/seed-strains-extended.sql
+-- =============================================================================
 
 create extension if not exists "pgcrypto";
 
@@ -771,6 +774,9 @@ create index if not exists strain_photos_strain_id_idx on "StrainVerse".strain_p
 create index if not exists strain_reviews_strain_id_idx on "StrainVerse".strain_reviews (strain_id);
 create index if not exists matchit_interactions_post_id_idx on "StrainVerse".matchit_interactions (post_id);
 create index if not exists matchit_interactions_receiver_idx on "StrainVerse".matchit_interactions (receiver_id, status);
+create index if not exists profiles_matchit_presence_idx
+  on "StrainVerse".profiles (show_in_matchit)
+  where show_in_matchit = true;
 
 -- SYNC EXISTING AUTH USERS (shared Verse auth — Cookbook, SpiritsVerse, StrainVerse) --
 -- Provisions StrainVerse.profiles for any auth.users row missing a profile.
@@ -833,6 +839,9 @@ BEGIN
   END LOOP;
 END $$;
 
+-- Clear legacy preset bios from earlier builds (idempotent)
+update "StrainVerse".profiles set bio = '' where bio = 'Just vibing.';
+
 -- Register StrainVerse with the shared Verse Supabase Data API
 select public.register_app_schema('StrainVerse') as registered_schemas;
 select public.repair_postgrest_schemas('StrainVerse') as postgrest_schemas;
@@ -845,3 +854,6 @@ where schemaname = 'StrainVerse'
 order by tablename;
 
 select count(*) as profile_count from "StrainVerse".profiles;
+
+-- Schema sync complete
+select 'StrainVerse complete-schema.sql finished' as status, now() as completed_at;

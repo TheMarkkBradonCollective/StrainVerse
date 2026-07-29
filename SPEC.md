@@ -179,7 +179,7 @@ MatchIt is a **Grindr-style people feed**: nearby adults who want to smoke, not 
 
 - Profile toggle `show_in_matchit` — when on, you appear in others’ Nearby feed
 - Optional status: looking-for intent (`matchit_looking_for`)
-- SQL migration: `sql/matchit-people-feed.sql`
+- Included in `sql/complete-schema.sql`
 
 #### Tabs
 
@@ -435,7 +435,7 @@ All data access goes through `services/supabaseClient.ts` exports: `supabase`, `
 
 ## 8. Database Schema
 
-**Canonical SQL:** `sql/complete-setup.sql` (run in Supabase SQL Editor)
+**Canonical SQL:** `sql/complete-schema.sql` (run in Supabase SQL Editor — safe to re-run on every update)
 
 Schema namespace: `"StrainVerse"`
 
@@ -598,7 +598,7 @@ Profile layout uses: `.ys-profile-root`, `.ys-header`, `.ys-avatar`, `.ys-bio`, 
 ### Prerequisites
 
 - Node.js
-- Supabase project with `StrainVerse` schema (run `sql/complete-setup.sql`)
+- Supabase project with `StrainVerse` schema (run `sql/complete-schema.sql`)
 - `StrainVerse` storage bucket with policies
 
 ### Local development
@@ -638,7 +638,9 @@ npm run preview
 ├── SPEC.md                    # This document
 ├── details.txt                # Legacy feature notes
 ├── sql/
-│   └── complete-setup.sql     # Canonical DB schema (shared Verse Supabase)
+│   ├── complete-schema.sql    # Canonical DB schema (re-run for all updates)
+│   ├── seed-strains.sql       # Optional strain encyclopedia seed
+│   └── seed-strains-extended.sql  # Optional extended strain seed
 ├── services/
 │   └── supabaseClient.ts      # Supabase client, auth, full API
 └── components/
