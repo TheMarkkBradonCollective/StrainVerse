@@ -44,7 +44,7 @@ const SocialSeshDirectory: React.FC<SocialSeshDirectoryProps> = ({ groups, onSel
   };
 
   return (
-    <div className="p-4 pb-20 lg:pb-4">
+    <div className="p-4 sv-scroll-pad">
       {isCreateModalOpen && <CreateSeshModal onCreate={handleCreateSesh} onClose={() => setIsCreateModalOpen(false)} />}
       <div className="flex justify-between items-center mb-6">
         <div>

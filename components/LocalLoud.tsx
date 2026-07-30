@@ -51,7 +51,7 @@ const LocalLoud: React.FC<{ user: User, posts: Post[], onReaction: (postId: stri
     const reactionsToDisplay: ReactionType[] = ['HIGH_AF', 'WEAK', 'FELT_THIS', 'BRUH'];
 
     const renderFeed = () => (
-        <div className="pb-24 lg:pb-6 relative">
+        <div className="sv-scroll-pad relative">
             {isPostModalOpen && <CreatePostModal onClose={() => setPostModalOpen(false)} onPost={onPost} isLocal />}
             <StrainStories stories={stories} />
 

@@ -206,7 +206,7 @@ const StrainVerseDirectory: React.FC<StrainVerseDirectoryProps> = ({ onStrainSel
     );
 
   return (
-    <div className="p-4 pb-24 lg:pb-4">
+    <div className="p-4 sv-scroll-pad">
       <div className="sticky top-0 bg-[var(--bg-main)]/85 backdrop-blur-md z-10 py-4 -mt-4">
           <div className="flex gap-2 mb-0">
             <div className="relative flex-1">

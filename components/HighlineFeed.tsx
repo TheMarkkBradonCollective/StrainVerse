@@ -66,7 +66,7 @@ const HighlineFeed: React.FC<{ user: User, posts: Post[], onReaction: (postId: s
     const reactionsToDisplay: ReactionType[] = ['THUMBS_UP', 'LIKE', 'FIRE', 'DISLIKE'];
 
     return (
-        <div className="pb-24 lg:pb-6 relative">
+        <div className="sv-scroll-pad relative">
             {isPostModalOpen && <CreatePostModal onClose={() => setPostModalOpen(false)} onPost={onPost} isLocal={isLocal} />}
             <StrainStories stories={stories} onAddStoryClick={onAddStoryClick} />
 
