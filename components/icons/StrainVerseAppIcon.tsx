@@ -5,7 +5,7 @@ interface StrainVerseAppIconProps {
   className?: string;
 }
 
-/** App mark: SpiritsVerse comic — two hands passing a blunt (public/logo-master.png). */
+/** App mark: SpiritsVerse comic cheers toast — bong, joint, pipe, dab rig (public/logo-master.png). */
 const StrainVerseAppIcon: React.FC<StrainVerseAppIconProps> = ({ size = 24, className = '' }) => (
   <img
     src="/pwa-192.png"
