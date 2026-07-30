@@ -1,7 +1,16 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Flame, LocateFixed } from 'lucide-react';
 import { MatchItLocationShare } from '../types';
-import { computeMapBounds, getStaticMapUrl, latLngToPercent } from '../utils/mapBounds';
+import {
+  boundsFromCenterZoom,
+  computeMapBounds,
+  latLngToPercent,
+  latToTileY,
+  lonToTileX,
+  tileUrl,
+  zoomForBounds,
+  MapBounds,
+} from '../utils/mapBounds';
 
 export type MapPin = {
   id: string;
@@ -22,6 +31,41 @@ interface MatchItPeopleMapProps {
   emptyHint?: string;
 }
 
+type TileSpec = { key: string; z: number; x: number; y: number; left: number; top: number };
+
+function buildTiles(bounds: MapBounds, zoom: number, width: number, height: number): TileSpec[] {
+  const z = zoom;
+  const x0 = lonToTileX(bounds.minLng, z);
+  const x1 = lonToTileX(bounds.maxLng, z);
+  const y0 = latToTileY(bounds.maxLat, z);
+  const y1 = latToTileY(bounds.minLat, z);
+  const minX = Math.floor(x0);
+  const maxX = Math.floor(x1);
+  const minY = Math.floor(y0);
+  const maxY = Math.floor(y1);
+  const scale = 256;
+  const tiles: TileSpec[] = [];
+  const n = 2 ** z;
+  for (let x = minX; x <= maxX; x++) {
+    for (let y = minY; y <= maxY; y++) {
+      if (y < 0 || y >= n) continue;
+      const wrappedX = ((x % n) + n) % n;
+      tiles.push({
+        key: `${z}/${wrappedX}/${y}`,
+        z,
+        x: wrappedX,
+        y,
+        left: (x - x0) * scale,
+        top: (y - y0) * scale,
+      });
+    }
+  }
+  // Silence unused — width/height reserved for future density tweaks
+  void width;
+  void height;
+  return tiles;
+}
+
 const MatchItPeopleMap: React.FC<MatchItPeopleMapProps> = ({
   pins,
   userCoords,
@@ -30,32 +74,73 @@ const MatchItPeopleMap: React.FC<MatchItPeopleMapProps> = ({
   fullScreen = false,
   emptyHint = 'Only you on the map until someone shares location in a Match chat.',
 }) => {
-  const bounds = useMemo(() => {
+  const frameRef = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ w: 360, h: 480 });
+
+  useEffect(() => {
+    const el = frameRef.current;
+    if (!el) return;
+    const update = () => {
+      const r = el.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) {
+        setSize({ w: Math.round(r.width), h: Math.round(r.height) });
+      }
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const dataBounds = useMemo(() => {
     const points = pins.map((p) => ({ latitude: p.latitude, longitude: p.longitude }));
     return computeMapBounds(points, userCoords);
   }, [pins, userCoords]);
-  const mapUrl = useMemo(() => getStaticMapUrl(bounds, 900, 700), [bounds]);
+
+  const { viewBounds, zoom, tiles } = useMemo(() => {
+    const centerLat = (dataBounds.minLat + dataBounds.maxLat) / 2;
+    const centerLng = (dataBounds.minLng + dataBounds.maxLng) / 2;
+    const z = zoomForBounds(dataBounds, size.w, size.h);
+    const vb = boundsFromCenterZoom(centerLat, centerLng, z, size.w, size.h);
+    return {
+      viewBounds: vb,
+      zoom: z,
+      tiles: buildTiles(vb, z, size.w, size.h),
+    };
+  }, [dataBounds, size.w, size.h]);
 
   const frameClass = fullScreen
-    ? 'absolute inset-0 w-full h-full overflow-hidden bg-[var(--bg-card)]'
-    : 'relative w-full aspect-[4/3] rounded-2xl overflow-hidden border border-[var(--border)] shadow-[var(--shadow-card)] bg-[var(--bg-card)]';
+    ? 'absolute inset-0 w-full h-full overflow-hidden bg-[var(--bg-input)]'
+    : 'relative w-full aspect-[4/3] rounded-2xl overflow-hidden border border-[var(--border)] shadow-[var(--shadow-card)] bg-[var(--bg-input)]';
 
   const others = pins.filter((p) => !p.isSelf);
 
   return (
-    <div className={frameClass}>
-      <img
-        src={mapUrl}
-        alt="MatchIt location map"
-        className="absolute inset-0 w-full h-full object-cover"
-        loading="lazy"
-      />
+    <div ref={frameRef} className={frameClass}>
+      <div className="absolute inset-0 overflow-hidden" aria-hidden>
+        {tiles.map((t) => (
+          <img
+            key={t.key}
+            src={tileUrl(t.z, t.x, t.y)}
+            alt=""
+            draggable={false}
+            className="absolute pointer-events-none select-none"
+            style={{
+              width: 256,
+              height: 256,
+              left: t.left,
+              top: t.top,
+            }}
+            loading="eager"
+          />
+        ))}
+      </div>
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/15 pointer-events-none" />
 
       {userCoords && (
         <div
           className="absolute z-20 -translate-x-1/2 -translate-y-1/2"
-          style={latLngToPercent(userCoords.lat, userCoords.lng, bounds)}
+          style={latLngToPercent(userCoords.lat, userCoords.lng, viewBounds)}
           title="You are here"
         >
           <div className="relative">
@@ -70,7 +155,7 @@ const MatchItPeopleMap: React.FC<MatchItPeopleMapProps> = ({
       {pins
         .filter((p) => !p.isSelf)
         .map((pin) => {
-          const pos = latLngToPercent(pin.latitude, pin.longitude, bounds);
+          const pos = latLngToPercent(pin.latitude, pin.longitude, viewBounds);
           const isSelected = selectedPinId === pin.id;
           return (
             <button
@@ -100,7 +185,7 @@ const MatchItPeopleMap: React.FC<MatchItPeopleMapProps> = ({
           );
         })}
 
-      <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center gap-2 z-20">
+      <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center gap-2 z-20 pointer-events-none">
         {userCoords && (
           <div className="flex items-center gap-1.5 rounded-full bg-[var(--bg-card)]/90 px-2.5 py-1 text-[10px] font-semibold text-[var(--text-secondary)] backdrop-blur-sm border border-[var(--border)]">
             <LocateFixed size={12} className="text-blue-500" />
@@ -113,6 +198,14 @@ const MatchItPeopleMap: React.FC<MatchItPeopleMapProps> = ({
             : `${others.length} shared pin${others.length === 1 ? '' : 's'}`}
         </div>
       </div>
+      <a
+        href="https://www.openstreetmap.org/copyright"
+        target="_blank"
+        rel="noreferrer"
+        className="absolute bottom-1 right-2 z-20 text-[9px] text-black/50 hover:text-black/80 bg-white/50 px-1 rounded"
+      >
+        © OSM · © CARTO
+      </a>
     </div>
   );
 };
