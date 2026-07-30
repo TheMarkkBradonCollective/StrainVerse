@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { User, Group, ReportCategory, MatchItInteraction, MatchPerson, MatchItLocationShare } from '../types';
-import { Flame, MapPin, AlertTriangle, ShieldOff, Flag, XCircle, Loader2, MessageSquare, Sparkles, MessageCircle, Leaf, LayoutGrid, List, Map } from 'lucide-react';
+import { Flame, MapPin, AlertTriangle, ShieldOff, Flag, XCircle, Loader2, MessageSquare, Sparkles, MessageCircle, Leaf, LayoutGrid, List, Map, CircleHelp } from 'lucide-react';
 import VibeTapModal from './VibeTapModal';
 import MatchItPeopleMap, { sharesToMapPins, MapPin as MatchMapPin } from './MatchItPeopleMap';
 import { api } from '../services/supabaseClient';
@@ -10,26 +10,31 @@ const LOOKING_FOR_OPTIONS = [
   {
     id: 'match',
     label: 'Match',
+    blurb: 'Find someone to smoke with — hang, vibe, and light up together.',
     aliases: ['Match to smoke', 'Looking for new friends'],
   },
   {
     id: 'burn_one',
     label: 'Burn one',
+    blurb: 'Down to spark up now. Looking for a sesh sooner rather than later.',
     aliases: ['Burn it'],
   },
   {
     id: 'smoke_me_out',
     label: 'Smoke me out',
+    blurb: 'Hoping someone brings the flower and treats you to a smoke.',
     aliases: [] as string[],
   },
   {
     id: 'pack_pass',
     label: 'Pack & pass',
+    blurb: 'Share a bowl, blunt, or joint — pack it, pass it, maybe try a strain together.',
     aliases: ['Looking for people to try strain with', 'Try a strain'],
   },
   {
     id: 'sesh_later',
     label: 'Sesh later',
+    blurb: 'Not free this second, but want to plan a smoke sesh later today.',
     aliases: ['Sesh later today'],
   },
 ] as const;
@@ -124,6 +129,7 @@ const LookingForDisplay: React.FC<{ raw?: string; className?: string; compact?: 
       {intents.map(id => (
         <span
           key={id}
+          title={LOOKING_FOR_OPTIONS.find(o => o.id === id)?.blurb}
           className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500/90 text-white"
         >
           <Flame size={10} /> {lookingForLabel(id)}
@@ -132,6 +138,54 @@ const LookingForDisplay: React.FC<{ raw?: string; className?: string; compact?: 
     </div>
   );
 };
+
+const IntentGlossaryModal: React.FC<{ onClose: () => void }> = ({ onClose }) => (
+  <div
+    className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+    onClick={onClose}
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="intent-glossary-title"
+  >
+    <div
+      className="bg-[var(--bg-card)] border border-[var(--border)] rounded-[1.5rem] w-full max-w-md shadow-2xl max-h-[85vh] overflow-hidden flex flex-col"
+      onClick={e => e.stopPropagation()}
+    >
+      <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
+        <h2 id="intent-glossary-title" className="text-lg font-bold text-[var(--text-main)] flex items-center gap-2">
+          <Flame size={18} className="text-orange-500" /> Smoke intents
+        </h2>
+        <button type="button" onClick={onClose} className="p-2 hover:bg-[var(--bg-hover)] rounded-full" aria-label="Close">
+          <XCircle size={20} />
+        </button>
+      </div>
+      <div className="p-4 space-y-4 overflow-y-auto">
+        <p className="text-sm text-[var(--text-muted)]">
+          Pick what you&apos;re down for so people nearby know the vibe. Use <span className="font-semibold text-[var(--text-main)]">Filter nearby</span> to only see people with matching intents.
+        </p>
+        <ul className="space-y-3">
+          {LOOKING_FOR_OPTIONS.map(opt => (
+            <li key={opt.id} className="flex gap-3 items-start">
+              <span className="mt-0.5 inline-flex flex-shrink-0 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-500 text-white">
+                {opt.label}
+              </span>
+              <p className="text-sm text-[var(--text-main)] leading-snug pt-0.5">{opt.blurb}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="p-4 border-t border-[var(--border)]">
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-full py-2.5 rounded-full bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold"
+        >
+          Got it
+        </button>
+      </div>
+    </div>
+  </div>
+);
 
 const ReportModal: React.FC<{
   person: MatchPerson;
@@ -364,6 +418,7 @@ const MatchIt: React.FC<{
   });
   const [presenceSaving, setPresenceSaving] = useState(false);
   const [tappingPerson, setTappingPerson] = useState<MatchPerson | null>(null);
+  const [showIntentGlossary, setShowIntentGlossary] = useState(false);
   const [reportingPerson, setReportingPerson] = useState<MatchPerson | null>(null);
   const [matchSuccessInfo, setMatchSuccessInfo] = useState<{ group: Group; otherUser: { name: string; avatar: string } } | null>(null);
   const [interactions, setInteractions] = useState<MatchItInteraction[]>([]);
@@ -582,9 +637,19 @@ const MatchIt: React.FC<{
       {showInMatchIt && (
         <>
           <div className="space-y-1.5">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)]">
-              I&apos;m down for
-            </p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)]">
+                I&apos;m down for
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowIntentGlossary(true)}
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-orange-600 hover:text-orange-500"
+                aria-label="What do these smoke intents mean?"
+              >
+                <CircleHelp size={13} /> What do these mean?
+              </button>
+            </div>
             <div className="flex flex-wrap gap-2" role="group" aria-label="Set your smoke intents">
               {LOOKING_FOR_OPTIONS.map(opt => {
                 const selected = lookingFor.includes(opt.id);
@@ -593,6 +658,7 @@ const MatchIt: React.FC<{
                     key={opt.id}
                     type="button"
                     aria-pressed={selected}
+                    title={opt.blurb}
                     onClick={() => void handleLookingForToggle(opt.id)}
                     className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
                       selected
@@ -629,6 +695,7 @@ const MatchIt: React.FC<{
                     key={`filter-${opt.id}`}
                     type="button"
                     aria-pressed={selected}
+                    title={opt.blurb}
                     onClick={() => handleFilterToggle(opt.id)}
                     className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
                       selected
@@ -832,6 +899,7 @@ const MatchIt: React.FC<{
       {tappingPerson && (
         <VibeTapModal userName={tappingPerson.name} onClose={() => setTappingPerson(null)} onSend={handleSendVibe} />
       )}
+      {showIntentGlossary && <IntentGlossaryModal onClose={() => setShowIntentGlossary(false)} />}
       {matchSuccessInfo && (
         <MatchSuccessModal info={matchSuccessInfo} onClose={() => setMatchSuccessInfo(null)} onGoToSesh={onMatch} />
       )}
