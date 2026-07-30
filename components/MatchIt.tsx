@@ -5,46 +5,96 @@ import VibeTapModal from './VibeTapModal';
 import MatchItPeopleMap, { sharesToMapPins, MapPin as MatchMapPin } from './MatchItPeopleMap';
 import { api } from '../services/supabaseClient';
 
+/** Stable ids stored in DB; labels are what users see. */
 const LOOKING_FOR_OPTIONS = [
-  'Match to smoke',
-  'Sesh later today',
-  'Looking for new friends',
-  'Looking for people to try strain with',
+  {
+    id: 'match',
+    label: 'Match',
+    aliases: ['Match to smoke', 'Looking for new friends'],
+  },
+  {
+    id: 'burn_one',
+    label: 'Burn one',
+    aliases: ['Burn it'],
+  },
+  {
+    id: 'smoke_me_out',
+    label: 'Smoke me out',
+    aliases: [] as string[],
+  },
+  {
+    id: 'pack_pass',
+    label: 'Pack & pass',
+    aliases: ['Looking for people to try strain with', 'Try a strain'],
+  },
+  {
+    id: 'sesh_later',
+    label: 'Sesh later',
+    aliases: ['Sesh later today'],
+  },
 ] as const;
 
-type LookingForOption = (typeof LOOKING_FOR_OPTIONS)[number];
+type LookingForId = (typeof LOOKING_FOR_OPTIONS)[number]['id'];
+
+const LOOKING_FOR_IDS = LOOKING_FOR_OPTIONS.map(o => o.id) as LookingForId[];
+
+const lookingForLabel = (id: LookingForId): string =>
+  LOOKING_FOR_OPTIONS.find(o => o.id === id)?.label ?? id;
+
+const resolveLookingForToken = (token: string): LookingForId | null => {
+  const t = token.trim();
+  if (!t) return null;
+  const byId = LOOKING_FOR_OPTIONS.find(o => o.id === t);
+  if (byId) return byId.id;
+  const byLabel = LOOKING_FOR_OPTIONS.find(
+    o => o.label.toLowerCase() === t.toLowerCase() || o.aliases.some(a => a.toLowerCase() === t.toLowerCase())
+  );
+  return byLabel?.id ?? null;
+};
 
 const VIEW_MODE_KEY = 'matchit-nearby-view';
+const FILTER_KEY = 'matchit-intent-filters';
 
-/** Parse stored looking-for (JSON array or legacy single string). */
-export const parseLookingFor = (raw?: string | null): LookingForOption[] => {
-  if (!raw?.trim()) return [LOOKING_FOR_OPTIONS[0]];
+/** Parse stored looking-for (JSON ids/labels or legacy single string). */
+export const parseLookingFor = (raw?: string | null): LookingForId[] => {
+  if (!raw?.trim()) return ['match'];
   const trimmed = raw.trim();
+  const collect = (tokens: string[]): LookingForId[] => {
+    const seen = new Set<LookingForId>();
+    for (const token of tokens) {
+      const id = resolveLookingForToken(token);
+      if (id) seen.add(id);
+    }
+    return [...seen];
+  };
+
   if (trimmed.startsWith('[')) {
     try {
       const parsed = JSON.parse(trimmed);
       if (Array.isArray(parsed)) {
-        const valid = parsed.filter((v): v is LookingForOption =>
-          typeof v === 'string' && (LOOKING_FOR_OPTIONS as readonly string[]).includes(v)
-        );
+        const valid = collect(parsed.filter((v): v is string => typeof v === 'string'));
         if (valid.length) return valid;
       }
     } catch {
       /* fall through */
     }
   }
-  if ((LOOKING_FOR_OPTIONS as readonly string[]).includes(trimmed)) {
-    return [trimmed as LookingForOption];
-  }
-  // Comma-separated legacy
-  const parts = trimmed.split(',').map(s => s.trim()).filter((v): v is LookingForOption =>
-    (LOOKING_FOR_OPTIONS as readonly string[]).includes(v)
-  );
-  return parts.length ? parts : [LOOKING_FOR_OPTIONS[0]];
+
+  const single = resolveLookingForToken(trimmed);
+  if (single) return [single];
+
+  const parts = collect(trimmed.split(','));
+  return parts.length ? parts : ['match'];
 };
 
-export const serializeLookingFor = (values: LookingForOption[]): string =>
-  JSON.stringify(values.length ? values : [LOOKING_FOR_OPTIONS[0]]);
+export const serializeLookingFor = (values: LookingForId[]): string =>
+  JSON.stringify(values.length ? values : (['match'] as LookingForId[]));
+
+const personMatchesFilters = (person: MatchPerson, filters: LookingForId[]): boolean => {
+  if (filters.length === 0) return true;
+  const intents = parseLookingFor(person.matchLookingFor);
+  return filters.some(f => intents.includes(f));
+};
 
 const distanceLabel = (person: MatchPerson) =>
   person.distance != null
@@ -60,22 +110,23 @@ const LookingForDisplay: React.FC<{ raw?: string; className?: string; compact?: 
 }) => {
   if (!raw) return null;
   const intents = parseLookingFor(raw);
+  const labels = intents.map(lookingForLabel);
   if (compact) {
     return (
       <p className={`text-xs font-semibold truncate flex items-center gap-1 ${className}`}>
         <Flame size={12} className="flex-shrink-0" />
-        {intents.join(' · ')}
+        {labels.join(' · ')}
       </p>
     );
   }
   return (
     <div className={`flex flex-wrap gap-1 ${className}`}>
-      {intents.map(intent => (
+      {intents.map(id => (
         <span
-          key={intent}
+          key={id}
           className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500/90 text-white"
         >
-          <Flame size={10} /> {intent}
+          <Flame size={10} /> {lookingForLabel(id)}
         </span>
       ))}
     </div>
@@ -298,7 +349,19 @@ const MatchIt: React.FC<{
   const [locationShares, setLocationShares] = useState<MatchItLocationShare[]>([]);
   const [selectedMapPin, setSelectedMapPin] = useState<MatchMapPin | null>(null);
   const [showInMatchIt, setShowInMatchIt] = useState(Boolean(user.showInMatchIt));
-  const [lookingFor, setLookingFor] = useState<LookingForOption[]>(() => parseLookingFor(user.matchLookingFor));
+  const [lookingFor, setLookingFor] = useState<LookingForId[]>(() => parseLookingFor(user.matchLookingFor));
+  const [intentFilters, setIntentFilters] = useState<LookingForId[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const saved = window.localStorage.getItem(FILTER_KEY);
+      if (!saved) return [];
+      const parsed = JSON.parse(saved);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter((v): v is LookingForId => LOOKING_FOR_IDS.includes(v));
+    } catch {
+      return [];
+    }
+  });
   const [presenceSaving, setPresenceSaving] = useState(false);
   const [tappingPerson, setTappingPerson] = useState<MatchPerson | null>(null);
   const [reportingPerson, setReportingPerson] = useState<MatchPerson | null>(null);
@@ -308,6 +371,10 @@ const MatchIt: React.FC<{
   useEffect(() => {
     window.localStorage.setItem(VIEW_MODE_KEY, viewMode);
   }, [viewMode]);
+
+  useEffect(() => {
+    window.localStorage.setItem(FILTER_KEY, JSON.stringify(intentFilters));
+  }, [intentFilters]);
 
   const loadFeed = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) setIsLoading(true);
@@ -377,7 +444,7 @@ const MatchIt: React.FC<{
     }
   };
 
-  const handleLookingForToggle = async (option: LookingForOption) => {
+  const handleLookingForToggle = async (option: LookingForId) => {
     const next = lookingFor.includes(option)
       ? lookingFor.filter(v => v !== option)
       : [...lookingFor, option];
@@ -392,6 +459,12 @@ const MatchIt: React.FC<{
       setLookingFor(lookingFor);
       alert(e.message || 'Could not update status');
     }
+  };
+
+  const handleFilterToggle = (option: LookingForId) => {
+    setIntentFilters(prev =>
+      prev.includes(option) ? prev.filter(v => v !== option) : [...prev, option]
+    );
   };
 
   const handleSendVibe = async (message: string, type: 'TAP' | 'SPARK') => {
@@ -508,25 +581,66 @@ const MatchIt: React.FC<{
 
       {showInMatchIt && (
         <>
-          <div className="flex flex-wrap gap-2" role="group" aria-label="What are you looking for">
-            {LOOKING_FOR_OPTIONS.map(opt => {
-              const selected = lookingFor.includes(opt);
-              return (
+          <div className="space-y-1.5">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)]">
+              I&apos;m down for
+            </p>
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Set your smoke intents">
+              {LOOKING_FOR_OPTIONS.map(opt => {
+                const selected = lookingFor.includes(opt.id);
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => void handleLookingForToggle(opt.id)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
+                      selected
+                        ? 'bg-orange-500 border-orange-500 text-white'
+                        : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--text-muted)] hover:border-orange-400 hover:text-[var(--text-main)]'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)]">
+                Filter nearby
+              </p>
+              {intentFilters.length > 0 && (
                 <button
-                  key={opt}
                   type="button"
-                  aria-pressed={selected}
-                  onClick={() => void handleLookingForToggle(opt)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
-                    selected
-                      ? 'bg-orange-500 border-orange-500 text-white'
-                      : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--text-muted)] hover:border-orange-400 hover:text-[var(--text-main)]'
-                  }`}
+                  onClick={() => setIntentFilters([])}
+                  className="text-[11px] font-semibold text-orange-600 hover:text-orange-500"
                 >
-                  {opt}
+                  Clear
                 </button>
-              );
-            })}
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Filter people by intent">
+              {LOOKING_FOR_OPTIONS.map(opt => {
+                const selected = intentFilters.includes(opt.id);
+                return (
+                  <button
+                    key={`filter-${opt.id}`}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => handleFilterToggle(opt.id)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
+                      selected
+                        ? 'bg-[var(--text-main)] border-[var(--text-main)] text-[var(--bg-main)]'
+                        : 'bg-transparent border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--text-main)] hover:text-[var(--text-main)]'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
           <div className="flex items-center justify-between gap-2">
             <p className="text-xs text-[var(--text-muted)] flex items-center gap-1 min-w-0 truncate">
@@ -615,6 +729,8 @@ const MatchIt: React.FC<{
     return fromShares;
   })();
 
+  const filteredPeople = people.filter(person => personMatchesFilters(person, intentFilters));
+
   const renderPeople = () => {
     if (viewMode === 'map') {
       return (
@@ -659,10 +775,29 @@ const MatchIt: React.FC<{
       );
     }
 
+    if (filteredPeople.length === 0) {
+      return (
+        <div className="text-center py-16 text-[var(--text-muted)] px-6">
+          <Flame size={40} className="mx-auto mb-3 text-orange-400/50" />
+          <p className="font-bold text-lg text-[var(--text-main)]">No matches for this filter</p>
+          <p className="text-sm mt-1">
+            Try clearing filters or picking different intents — {people.length} people are nearby.
+          </p>
+          <button
+            type="button"
+            onClick={() => setIntentFilters([])}
+            className="mt-4 px-4 py-2 rounded-full text-sm font-bold bg-orange-500 text-white"
+          >
+            Clear filters
+          </button>
+        </div>
+      );
+    }
+
     if (viewMode === 'list') {
       return (
         <div className="flex flex-col gap-3 p-4">
-          {people.map(person => (
+          {filteredPeople.map(person => (
             <PersonListRow
               key={person.id}
               person={person}
@@ -678,7 +813,7 @@ const MatchIt: React.FC<{
 
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4">
-        {people.map(person => (
+        {filteredPeople.map(person => (
           <PersonCard
             key={person.id}
             person={person}
