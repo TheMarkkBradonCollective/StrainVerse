@@ -319,8 +319,8 @@ export const api = {
 
     if (name !== undefined) dbPayload.name = name;
     if (bio !== undefined) dbPayload.bio = bio;
-    if (city !== undefined) dbPayload.city = city;
-    if (state !== undefined) dbPayload.state = state;
+    if (city !== undefined) dbPayload.city = typeof city === 'string' ? city.trim() : city;
+    if (state !== undefined) dbPayload.state = typeof state === 'string' ? state.trim() : state;
     if (favStrains !== undefined) dbPayload.fav_strains = favStrains;
     if (smokingStyle !== undefined) dbPayload.smoking_style = smokingStyle;
     if (dateOfBirth !== undefined) dbPayload.date_of_birth = dateOfBirth;
@@ -340,7 +340,14 @@ export const api = {
   },
 
   updateUserLocation: async (userId: string, lat: number, lng: number, radius: number) => {
-      await strainVerse().from('profiles').update({ latitude: lat, longitude: lng, distance_radius: radius }).eq('id', userId);
+      const { error } = await strainVerse()
+        .from('profiles')
+        .update({ latitude: lat, longitude: lng, distance_radius: radius })
+        .eq('id', userId);
+      if (error) {
+        console.error('Error updating user location:', error);
+        throw error;
+      }
   },
 
   uploadImage: async (file: File): Promise<string | null> => {
@@ -720,6 +727,21 @@ export const api = {
 
   // --- MatchIt Vibe System ---
   setMatchItPresence: async (userId: string, showInMatchIt: boolean, lookingFor?: string) => {
+    if (showInMatchIt) {
+      const { data: profile, error: profileError } = await strainVerse()
+        .from('profiles')
+        .select('date_of_birth, city, state')
+        .eq('id', userId)
+        .single();
+      if (profileError) throw profileError;
+      const age = calculateAgeFromDob(profile?.date_of_birth);
+      if (age === null || age < 21) {
+        throw new Error('You must be 21+ with a date of birth on your profile to appear in MatchIt.');
+      }
+      if (!profile?.city || !profile?.state) {
+        throw new Error('Add your city and state in My Stash before turning on Looking to smoke.');
+      }
+    }
     const payload: Record<string, unknown> = { show_in_matchit: showInMatchIt };
     if (lookingFor !== undefined) payload.matchit_looking_for = lookingFor || null;
     const { error } = await strainVerse().from('profiles').update(payload).eq('id', userId);
@@ -730,20 +752,23 @@ export const api = {
   },
 
   getMatchItPeople: async (user: User): Promise<MatchPerson[]> => {
-    if (!user.city || !user.state) return [];
+    const city = (user.city || '').trim();
+    const state = (user.state || '').trim();
+    if (!city || !state) return [];
 
     const blockedUserIds = await api.getBlockedUserIds(user.id);
+    // Case-insensitive city/state match so "Sacramento" / "sacramento" still connect
     const { data, error } = await strainVerse()
       .from('profiles')
       .select('id, name, handle, avatar, bio, city, state, latitude, longitude, smoking_style, fav_strains, matchit_looking_for, show_in_matchit, date_of_birth, status')
       .eq('show_in_matchit', true)
-      .eq('city', user.city)
-      .eq('state', user.state)
+      .ilike('city', city)
+      .ilike('state', state)
       .neq('id', user.id);
 
     if (error) {
       console.error('Error fetching MatchIt people:', error);
-      return [];
+      throw error;
     }
 
     const radius = user.distanceRadius || 25;
@@ -751,8 +776,9 @@ export const api = {
       .filter((p: any) => {
         if (p.status === 'banned' || p.status === 'shadow_banned') return false;
         if (blockedUserIds.includes(p.id)) return false;
+        // Require verified 21+ — profiles without DOB stay hidden
         const age = calculateAgeFromDob(p.date_of_birth);
-        if (age !== null && age < 21) return false;
+        if (age === null || age < 21) return false;
         return true;
       })
       .map((p: any) => {
@@ -764,7 +790,7 @@ export const api = {
           id: p.id,
           name: p.name,
           handle: p.handle,
-          avatar: p.avatar,
+          avatar: p.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.id}`,
           bio: p.bio || '',
           city: p.city,
           state: p.state,
@@ -788,7 +814,11 @@ export const api = {
   },
 
   sendVibe: async (senderId: string, receiverId: string, message: string | null, type: 'TAP' | 'SPARK', postId?: string | null): Promise<{ interaction: MatchItInteraction | null, mutualMatch: Group | null }> => {
-    let existingQuery = strainVerse().from('matchit_interactions').select('id').eq('sender_id', senderId).eq('receiver_id', receiverId);
+    let existingQuery = strainVerse()
+      .from('matchit_interactions')
+      .select('id, status')
+      .eq('sender_id', senderId)
+      .eq('receiver_id', receiverId);
     if (postId) {
       existingQuery = existingQuery.eq('post_id', postId);
     } else {
@@ -800,8 +830,18 @@ export const api = {
         console.error("Error checking existing vibe:", selectError);
         throw selectError;
     }
-    if (existing && existing.length > 0) {
+
+    const blocking = (existing || []).filter((row: { status: string }) => row.status !== 'DECLINED');
+    if (blocking.length > 0) {
         throw new Error("You've already sent a vibe to this person.");
+    }
+
+    // Allow a fresh vibe after a prior decline
+    const declinedIds = (existing || [])
+      .filter((row: { status: string }) => row.status === 'DECLINED')
+      .map((row: { id: string }) => row.id);
+    if (declinedIds.length > 0) {
+      await strainVerse().from('matchit_interactions').delete().in('id', declinedIds);
     }
     
     const insertPayload: Record<string, unknown> = {
@@ -846,13 +886,15 @@ export const api = {
   },
 
   createMatchChat: async (user1Id: string, user2Id: string): Promise<Group | null> => {
-      const { data: users, error: usersError } = await strainVerse().from('profiles').select('name').in('id', [user1Id, user2Id]);
-      if(usersError || users.length < 2) {
+      const { data: users, error: usersError } = await strainVerse().from('profiles').select('id, name').in('id', [user1Id, user2Id]);
+      if(usersError || !users || users.length < 2) {
         console.error("Couldn't fetch users for match chat name", usersError);
         return null;
       }
-      
-      const groupName = `${users[0].name} & ${users[1].name}'s Sesh`;
+
+      // Prefer stable "You & Them" ordering by input ids
+      const nameById = Object.fromEntries(users.map((u: { id: string; name: string }) => [u.id, u.name]));
+      const groupName = `${nameById[user1Id] || 'You'} & ${nameById[user2Id] || 'Them'}'s Sesh`;
       const { data: group, error } = await strainVerse().from('groups').insert({
           name: groupName,
           description: 'A match from MatchIt!',
@@ -864,25 +906,35 @@ export const api = {
           console.error("Error creating match chat:", error);
           return null;
       }
-      return group as Group;
+      return {
+        id: group.id,
+        name: group.name,
+        description: group.description,
+        type: group.type,
+        members: group.members || [user1Id, user2Id],
+        messages: [],
+        cover_image_url: group.cover_image_url,
+      } as Group;
   },
 
   respondToVibe: async (interactionId: string, senderId: string, receiverId: string, response: 'MATCHED' | 'DECLINED'): Promise<Group | null> => {
       if (response === 'MATCHED') {
           const matchGroup = await api.createMatchChat(senderId, receiverId);
-          if (matchGroup) {
-              const { error } = await strainVerse().from('matchit_interactions').update({ status: 'MATCHED', group_id: matchGroup.id }).eq('id', interactionId);
-              if (error) {
-                  console.error("Error updating interaction status:", error);
-                  return null;
-              }
-              return matchGroup;
+          if (!matchGroup) {
+            throw new Error('Could not create match chat. Please try again.');
           }
-      } else {
-          const { error } = await strainVerse().from('matchit_interactions').update({ status: 'DECLINED' }).eq('id', interactionId);
+          const { error } = await strainVerse().from('matchit_interactions').update({ status: 'MATCHED', group_id: matchGroup.id }).eq('id', interactionId);
           if (error) {
-              console.error("Error declining vibe:", error);
+              console.error("Error updating interaction status:", error);
+              throw error;
           }
+          return matchGroup;
+      }
+
+      const { error } = await strainVerse().from('matchit_interactions').update({ status: 'DECLINED' }).eq('id', interactionId);
+      if (error) {
+          console.error("Error declining vibe:", error);
+          throw error;
       }
       return null;
   },

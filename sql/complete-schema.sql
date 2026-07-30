@@ -506,6 +506,10 @@ create table if not exists "StrainVerse".blocks (
 alter table "StrainVerse".blocks enable row level security;
 drop policy if exists "Users can manage their own blocks." on "StrainVerse".blocks;
 create policy "Users can manage their own blocks." on "StrainVerse".blocks for all using (auth.uid() = blocker_id);
+-- Allow the blocked user to see rows where they are blocked (mutual hide in feeds)
+drop policy if exists "Users can see blocks involving them" on "StrainVerse".blocks;
+create policy "Users can see blocks involving them" on "StrainVerse".blocks
+  for select using (auth.uid() = blocker_id or auth.uid() = blocked_id);
 
 -- MATCHIT VIBE CHECK SYSTEM --
 
@@ -552,9 +556,12 @@ alter table "StrainVerse".matchit_interactions add column if not exists group_id
 
 -- Person-to-person vibes (no post required)
 alter table "StrainVerse".matchit_interactions alter column post_id drop not null;
+-- Unique only for active vibes so users can re-send after DECLINED
+drop index if exists matchit_person_vibe_uidx;
+drop index if exists "StrainVerse".matchit_person_vibe_uidx;
 create unique index if not exists matchit_person_vibe_uidx
   on "StrainVerse".matchit_interactions (sender_id, receiver_id)
-  where post_id is null;
+  where post_id is null and status in ('PENDING', 'MATCHED');
 
 -- TABLE MODIFICATIONS --
 

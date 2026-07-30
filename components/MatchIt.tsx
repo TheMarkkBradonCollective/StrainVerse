@@ -160,11 +160,13 @@ const MatchIt: React.FC<{
   groups?: Group[];
   onSelectGroup?: (groupId: string) => void;
   refreshUser: () => Promise<void>;
-}> = ({ user, userAge, onReportUser, onBlockUser, onMatch, groups, onSelectGroup, refreshUser }) => {
+  refreshGroups?: () => Promise<void> | void;
+}> = ({ user, userAge, onReportUser, onBlockUser, onMatch, groups, onSelectGroup, refreshUser, refreshGroups }) => {
   const [people, setPeople] = useState<MatchPerson[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'FIND' | 'CHATS'>('FIND');
-  const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
+  const [viewMode, setViewMode] = useState<'map' | 'list'>('list');
   const [selectedMapPerson, setSelectedMapPerson] = useState<MatchPerson | null>(null);
   const [showInMatchIt, setShowInMatchIt] = useState(Boolean(user.showInMatchIt));
   const [lookingFor, setLookingFor] = useState(user.matchLookingFor || LOOKING_FOR_OPTIONS[0]);
@@ -176,14 +178,32 @@ const MatchIt: React.FC<{
 
   const loadFeed = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) setIsLoading(true);
-    const [nearby, vibes] = await Promise.all([
-      api.getMatchItPeople(user),
-      api.getMatchItInteractionsForUser(user.id),
-    ]);
-    setPeople(nearby);
-    setInteractions(vibes);
-    setIsLoading(false);
-  }, [user]);
+    setLoadError(null);
+    try {
+      const [nearby, vibes] = await Promise.all([
+        api.getMatchItPeople(user),
+        api.getMatchItInteractionsForUser(user.id),
+      ]);
+      setPeople(nearby);
+      setInteractions(vibes);
+      // Prefer list when nobody has map coords yet so people still show up
+      const mappable = nearby.some(
+        (p) => typeof p.latitude === 'number' && typeof p.longitude === 'number'
+      );
+      if (nearby.length > 0 && !mappable) {
+        setViewMode((mode) => (mode === 'map' ? 'list' : mode));
+      }
+    } catch (e: any) {
+      console.error('MatchIt feed failed:', e);
+      setLoadError(e?.message || 'Could not load people nearby. Try again.');
+      if (!opts?.silent) {
+        setPeople([]);
+        setInteractions([]);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user.id, user.city, user.state, user.latitude, user.longitude, user.distanceRadius]);
 
   useEffect(() => {
     setShowInMatchIt(Boolean(user.showInMatchIt));
@@ -191,21 +211,23 @@ const MatchIt: React.FC<{
   }, [user.showInMatchIt, user.matchLookingFor]);
 
   useEffect(() => {
-    if (userAge && userAge >= 21 && user.city && user.state) {
-      loadFeed();
+    if (userAge !== null && userAge >= 21 && user.city && user.state) {
+      void loadFeed();
+    } else {
+      setIsLoading(false);
     }
   }, [userAge, user.city, user.state, loadFeed]);
 
   // Auto-refresh nearby people while MatchIt is open
   useEffect(() => {
-    if (!(userAge && userAge >= 21 && user.city && user.state)) return;
+    if (!(userAge !== null && userAge >= 21 && user.city && user.state)) return;
     const soft = () => {
       if (document.visibilityState !== 'visible') return;
       void loadFeed({ silent: true });
     };
     const onVisible = () => soft();
     document.addEventListener('visibilitychange', onVisible);
-    const intervalId = window.setInterval(soft, 60 * 1000);
+    const intervalId = window.setInterval(soft, 45 * 1000);
     return () => {
       document.removeEventListener('visibilitychange', onVisible);
       window.clearInterval(intervalId);
@@ -246,8 +268,9 @@ const MatchIt: React.FC<{
       setTappingPerson(null);
       if (mutualMatch) {
         setMatchSuccessInfo({ group: mutualMatch, otherUser: { name: tappingPerson.name, avatar: tappingPerson.avatar } });
+        void refreshGroups?.();
       } else if (interaction) {
-        setInteractions(prev => [interaction, ...prev]);
+        setInteractions(prev => [interaction, ...prev.filter(i => i.id !== interaction.id)]);
       }
     } catch (e: any) {
       alert(e.message);
@@ -256,11 +279,20 @@ const MatchIt: React.FC<{
   };
 
   const handleRespondVibe = async (interaction: MatchItInteraction, response: 'MATCHED' | 'DECLINED') => {
-    const matchedGroup = await api.respondToVibe(interaction.id, interaction.sender_id, interaction.receiver_id, response);
-    if (response === 'MATCHED' && matchedGroup) {
-      setMatchSuccessInfo({ group: matchedGroup, otherUser: { name: interaction.sender_name, avatar: interaction.sender_avatar } });
+    try {
+      const matchedGroup = await api.respondToVibe(interaction.id, interaction.sender_id, interaction.receiver_id, response);
+      if (response === 'MATCHED') {
+        if (!matchedGroup) {
+          alert('Could not create the match chat. Please try again.');
+          return;
+        }
+        setMatchSuccessInfo({ group: matchedGroup, otherUser: { name: interaction.sender_name, avatar: interaction.sender_avatar } });
+        void refreshGroups?.();
+      }
+      setInteractions(prev => prev.map(i => (i.id === interaction.id ? { ...i, status: response } : i)));
+    } catch (e: any) {
+      alert(e?.message || 'Could not update that vibe. Please try again.');
     }
-    setInteractions(prev => prev.map(i => (i.id === interaction.id ? { ...i, status: response } : i)));
   };
 
   const handleBlock = async (person: MatchPerson) => {
@@ -271,11 +303,23 @@ const MatchIt: React.FC<{
   };
 
   const sentToIds = new Set(
-    interactions.filter(i => i.sender_id === user.id).map(i => i.receiver_id)
+    interactions
+      .filter(i => i.sender_id === user.id && i.status !== 'DECLINED')
+      .map(i => i.receiver_id)
   );
   const incomingVibes = interactions.filter(i => i.receiver_id === user.id && i.status === 'PENDING');
 
-  if (userAge && userAge < 21) {
+  if (userAge === null) {
+    return (
+      <div className="p-8 text-center text-[var(--text-muted)] flex flex-col items-center justify-center h-full">
+        <AlertTriangle size={48} className="text-yellow-500/50 mb-4" />
+        <h2 className="text-xl font-bold text-[var(--text-secondary)]">Date of birth required</h2>
+        <p className="text-sm max-w-sm">Add your date of birth in My Stash so we can confirm you are 21+ for MatchIt.</p>
+      </div>
+    );
+  }
+
+  if (userAge < 21) {
     return (
       <div className="p-8 text-center text-[var(--text-muted)] flex flex-col items-center justify-center h-full">
         <AlertTriangle size={48} className="text-yellow-500/50 mb-4" />
@@ -448,6 +492,18 @@ const MatchIt: React.FC<{
       {incomingVibesBar}
 
       <div className="relative flex-1 min-h-0">
+        {loadError && (
+          <div className="absolute top-3 left-3 right-3 z-30 bg-[var(--bg-card)] border border-red-300 text-red-700 rounded-2xl p-3 text-sm shadow-[var(--shadow-card)] flex items-start justify-between gap-3">
+            <p className="min-w-0">{loadError}</p>
+            <button
+              type="button"
+              onClick={() => void loadFeed()}
+              className="flex-shrink-0 text-xs font-bold px-3 py-1.5 rounded-full bg-red-600 text-white"
+            >
+              Retry
+            </button>
+          </div>
+        )}
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-full gap-3 p-4">
             <Loader2 size={32} className="animate-spin text-orange-500" />
@@ -464,7 +520,16 @@ const MatchIt: React.FC<{
             />
             {people.length > 0 && (
               <div className="absolute top-3 right-3 z-20 rounded-full bg-[var(--bg-card)]/95 border border-[var(--border)] px-3 py-1 text-[10px] font-semibold text-[var(--text-muted)] backdrop-blur-sm">
-                {people.length} nearby · tap pin for details
+                {people.filter(p => typeof p.latitude === 'number' && typeof p.longitude === 'number').length} on map · tap pin
+              </div>
+            )}
+            {people.length > 0 &&
+              !people.some(p => typeof p.latitude === 'number' && typeof p.longitude === 'number') && (
+              <div className="absolute inset-x-3 top-14 z-20 bg-[var(--bg-card)]/95 border border-[var(--border)] rounded-2xl p-3 text-sm text-[var(--text-secondary)] backdrop-blur-sm">
+                People are nearby but none shared GPS yet.{' '}
+                <button type="button" className="font-bold text-orange-600 underline" onClick={() => setViewMode('list')}>
+                  Open list
+                </button>
               </div>
             )}
             {mapPersonSheet}

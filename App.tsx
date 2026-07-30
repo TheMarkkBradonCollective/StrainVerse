@@ -279,7 +279,20 @@ const App: React.FC = () => {
         if (!user) return;
         
         navigator.geolocation.getCurrentPosition(
-            pos => api.updateUserLocation(user.id, pos.coords.latitude, pos.coords.longitude, user.distanceRadius || 25),
+            async (pos) => {
+                const { latitude, longitude } = pos.coords;
+                const radius = user.distanceRadius || 25;
+                try {
+                    await api.updateUserLocation(user.id, latitude, longitude, radius);
+                    setUser((prev) =>
+                      prev
+                        ? { ...prev, latitude, longitude, distanceRadius: radius }
+                        : prev
+                    );
+                } catch (err) {
+                    console.warn('Could not save location:', err);
+                }
+            },
             err => console.warn("Could not get location:", err.message)
         );
 
@@ -308,7 +321,7 @@ const App: React.FC = () => {
             document.removeEventListener('visibilitychange', onVisible);
             window.clearInterval(intervalId);
         };
-    }, [user]);
+    }, [user?.id]);
     
     // --- DATA FETCHING based on view ---
     useEffect(() => {
@@ -521,6 +534,7 @@ const App: React.FC = () => {
                             groups={groups} 
                             onSelectGroup={selectGroup}
                             refreshUser={refreshUser}
+                            refreshGroups={fetchGroups}
                         />;
             case AppView.SOCIALSESH:
                 return <SocialSeshDirectory groups={groups} onSelectGroup={selectGroup} refreshGroups={fetchGroups} user={user!} />;
