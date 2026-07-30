@@ -67,12 +67,6 @@ const LOOKING_FOR_OPTIONS = [
     blurb: 'Hang out and smoke — no rush, kick back for a bit.',
     aliases: ['Chill sesh', 'Hang and smoke'],
   },
-  {
-    id: 'trade_nugs',
-    label: 'Trade nugs',
-    blurb: 'Swap flower or try each other\'s strains — trade, don\'t just take.',
-    aliases: ['Trade', 'Swap strains'],
-  },
 ] as const;
 
 type LookingForId = (typeof LOOKING_FOR_OPTIONS)[number]['id'];
@@ -122,7 +116,7 @@ const withoutConflicts = (values: LookingForId[], option: LookingForId): Looking
  * Selection rules so intents don't contradict:
  * - Smoke me out is solo (can't mix with anything)
  * - Conflict groups: only one timing / pace / treat-role at a time
- * - Match can combine with Smoke you out, Pack & pass, Trade nugs, and one timing + one pace
+ * - Match can combine with Smoke you out, Pack & pass, and one timing + one pace
  * - Empty always falls back to Match
  */
 export const normalizeLookingFor = (values: LookingForId[]): LookingForId[] => {
