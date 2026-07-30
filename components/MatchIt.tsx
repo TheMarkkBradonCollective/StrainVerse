@@ -68,6 +68,12 @@ const LOOKING_FOR_OPTIONS = [
     blurb: 'Hang out and smoke — no rush, kick back for a bit.',
     aliases: ['Chill sesh', 'Hang and smoke'],
   },
+  {
+    id: 'group_session',
+    label: 'Group session',
+    blurb: 'Looking for a group smoke — more than two people welcome.',
+    aliases: ['Group sesh', 'Group smoke', 'Crew sesh'],
+  },
 ] as const;
 
 type LookingForId = (typeof LOOKING_FOR_OPTIONS)[number]['id'];
@@ -255,7 +261,7 @@ const IntentGlossaryModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
         <p className="text-sm text-[var(--text-muted)]">
           Pick what you&apos;re down for so people nearby know the vibe. <span className="font-semibold text-[var(--text-main)]">Match</span> is the default.
           Conflicting picks auto-unselect — e.g. only one timing (Burn one / Sesh later / Wake &amp; bake / Nightcap), only one pace (Quick rip / Chill hang),
-          and <span className="font-semibold text-[var(--text-main)]">Smoke me out</span> stands alone.
+          and <span className="font-semibold text-[var(--text-main)]">Smoke me out</span> stands alone. Group session can mix with Match and other non-conflicting pills.
         </p>
         <ul className="space-y-3">
           {LOOKING_FOR_OPTIONS.map(opt => (
@@ -778,17 +784,40 @@ const MatchIt: React.FC<{
     }
   };
 
-  const handleRespondVibe = async (interaction: MatchItInteraction, response: 'MATCHED' | 'DECLINED') => {
+  /** Flame back on an incoming vibe — chat unlocks only when both have SPARKed. */
+  const handleFlameBack = async (interaction: MatchItInteraction) => {
     try {
-      const matchedGroup = await api.respondToVibe(interaction.id, interaction.sender_id, interaction.receiver_id, response);
-      if (response === 'MATCHED') {
-        if (!matchedGroup) {
-          alert('Could not create the match chat. Please try again.');
-          return;
-        }
-        setMatchSuccessInfo({ group: matchedGroup, otherUser: { name: interaction.sender_name, avatar: interaction.sender_avatar } });
+      const { interaction: sent, mutualMatch } = await api.sendVibe(
+        user.id,
+        interaction.sender_id,
+        '🔥',
+        'SPARK'
+      );
+      if (mutualMatch) {
+        setMatchSuccessInfo({
+          group: mutualMatch,
+          otherUser: { name: interaction.sender_name, avatar: interaction.sender_avatar },
+        });
         void refreshGroups?.();
+        setInteractions(prev =>
+          prev.map(i =>
+            i.id === interaction.id || i.id === sent?.id
+              ? { ...i, status: 'MATCHED' }
+              : i
+          )
+        );
+      } else if (sent) {
+        setInteractions(prev => [sent, ...prev.filter(i => i.id !== sent.id)]);
+        alert('Flame sent — chat unlocks when they flame you too (or if they already did, try again).');
       }
+    } catch (e: any) {
+      alert(e?.message || 'Could not send flame. Please try again.');
+    }
+  };
+
+  const handleRespondVibe = async (interaction: MatchItInteraction, response: 'DECLINED') => {
+    try {
+      await api.respondToVibe(interaction.id, interaction.sender_id, interaction.receiver_id, response);
       setInteractions(prev => prev.map(i => (i.id === interaction.id ? { ...i, status: response } : i)));
     } catch (e: any) {
       alert(e?.message || 'Could not update that vibe. Please try again.');
@@ -1048,7 +1077,13 @@ const MatchIt: React.FC<{
               </div>
             </div>
             <div className="flex gap-2 flex-shrink-0">
-              <button onClick={() => handleRespondVibe(vibe, 'MATCHED')} className="px-3 py-1.5 text-xs font-bold bg-green-500 text-white rounded-full">Match</button>
+              <button
+                type="button"
+                onClick={() => void handleFlameBack(vibe)}
+                className="px-3 py-1.5 text-xs font-bold bg-orange-500 text-white rounded-full flex items-center gap-1"
+              >
+                <Flame size={12} /> Flame back
+              </button>
               <button onClick={() => handleRespondVibe(vibe, 'DECLINED')} className="p-2 text-[var(--text-muted)] hover:text-[var(--text-main)]"><XCircle size={16} /></button>
             </div>
           </div>
@@ -1295,7 +1330,7 @@ const MatchIt: React.FC<{
           <div className="text-center py-20 text-[var(--text-muted)]">
             <Flame size={48} className="mx-auto mb-4 opacity-50 text-orange-400" />
             <p className="font-bold text-lg">No matches yet</p>
-            <p className="text-sm">Send vibes to people nearby to spark a sesh — chat unlocks after you match.</p>
+            <p className="text-sm">Chat unlocks when you both hit the flame 🔥 — spark each other, then talk.</p>
           </div>
         ) : (
           myMatches.map(group => {

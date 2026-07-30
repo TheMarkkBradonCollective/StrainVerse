@@ -851,7 +851,7 @@ export const api = {
   sendVibe: async (senderId: string, receiverId: string, message: string | null, type: 'TAP' | 'SPARK', postId?: string | null): Promise<{ interaction: MatchItInteraction | null, mutualMatch: Group | null }> => {
     let existingQuery = strainVerse()
       .from('matchit_interactions')
-      .select('id, status')
+      .select('id, status, type')
       .eq('sender_id', senderId)
       .eq('receiver_id', receiverId);
     if (postId) {
@@ -867,51 +867,103 @@ export const api = {
     }
 
     const blocking = (existing || []).filter((row: { status: string }) => row.status !== 'DECLINED');
+    let data: any = null;
+
     if (blocking.length > 0) {
-        throw new Error("You've already sent a vibe to this person.");
+        const pending = blocking[0] as { id: string; status: string; type: string };
+        // Allow upgrading a pending TAP to a SPARK (flame) so both can unlock chat
+        if (type === 'SPARK' && pending.status === 'PENDING' && pending.type !== 'SPARK') {
+          const { data: upgraded, error: upgradeError } = await strainVerse()
+            .from('matchit_interactions')
+            .update({ type: 'SPARK', message: message || 'Spark!' })
+            .eq('id', pending.id)
+            .select('*, sender:profiles!sender_id(name, avatar)')
+            .single();
+          if (upgradeError) {
+            console.error('Error upgrading vibe to spark:', upgradeError);
+            throw upgradeError;
+          }
+          data = upgraded;
+        } else if (type === 'SPARK' && pending.status === 'PENDING' && pending.type === 'SPARK') {
+          const { data: current, error: currentError } = await strainVerse()
+            .from('matchit_interactions')
+            .select('*, sender:profiles!sender_id(name, avatar)')
+            .eq('id', pending.id)
+            .single();
+          if (currentError) throw currentError;
+          data = current;
+        } else {
+          throw new Error("You've already sent a vibe to this person.");
+        }
+    } else {
+      const declinedIds = (existing || [])
+        .filter((row: { status: string }) => row.status === 'DECLINED')
+        .map((row: { id: string }) => row.id);
+      if (declinedIds.length > 0) {
+        await strainVerse().from('matchit_interactions').delete().in('id', declinedIds);
+      }
+
+      const insertPayload: Record<string, unknown> = {
+          sender_id: senderId,
+          receiver_id: receiverId,
+          message,
+          type,
+      };
+      if (postId) insertPayload.post_id = postId;
+
+      const { data: inserted, error } = await strainVerse().from('matchit_interactions').insert(insertPayload).select('*, sender:profiles!sender_id(name, avatar)').single();
+
+      if (error) {
+          console.error("Error sending vibe:", error);
+          throw error;
+      }
+      data = inserted;
     }
 
-    // Allow a fresh vibe after a prior decline
-    const declinedIds = (existing || [])
-      .filter((row: { status: string }) => row.status === 'DECLINED')
-      .map((row: { id: string }) => row.id);
-    if (declinedIds.length > 0) {
-      await strainVerse().from('matchit_interactions').delete().in('id', declinedIds);
-    }
-    
-    const insertPayload: Record<string, unknown> = {
-        sender_id: senderId,
-        receiver_id: receiverId,
-        message,
-        type,
-    };
-    if (postId) insertPayload.post_id = postId;
-
-    const { data, error } = await strainVerse().from('matchit_interactions').insert(insertPayload).select('*, sender:profiles!sender_id(name, avatar)').single();
-
-    if (error) {
-        console.error("Error sending vibe:", error);
-        throw error;
-    }
-    
     const interactionResult = {
         ...data,
         sender_name: data.sender.name,
         sender_avatar: data.sender.avatar,
     } as MatchItInteraction;
 
+    // Chat unlocks only when BOTH users have flamed (SPARK) each other
     let mutualMatch: Group | null = null;
-    if (type === 'SPARK') {
+    if (type === 'SPARK' || data.type === 'SPARK') {
         const { data: mutual } = await strainVerse().from('matchit_interactions').select('id, post_id')
             .eq('sender_id', receiverId)
             .eq('receiver_id', senderId)
             .eq('type', 'SPARK')
-            .eq('status', 'PENDING')
+            .in('status', ['PENDING', 'MATCHED'])
             .maybeSingle();
-        
+
         if (mutual) {
-            const matchGroup = await api.createMatchChat(senderId, receiverId);
-            if(matchGroup) {
+            const { data: existingMatched } = await strainVerse()
+              .from('matchit_interactions')
+              .select('group_id')
+              .or(`id.eq.${data.id},id.eq.${mutual.id}`)
+              .not('group_id', 'is', null)
+              .limit(1)
+              .maybeSingle();
+
+            let matchGroup: Group | null = null;
+            if (existingMatched?.group_id) {
+              const { data: g } = await strainVerse().from('groups').select('*').eq('id', existingMatched.group_id).maybeSingle();
+              if (g) {
+                matchGroup = {
+                  id: g.id,
+                  name: g.name,
+                  description: g.description,
+                  type: g.type,
+                  members: g.members || [],
+                  messages: [],
+                  cover_image_url: g.cover_image_url,
+                };
+              }
+            }
+            if (!matchGroup) {
+              matchGroup = await api.createMatchChat(senderId, receiverId);
+            }
+            if (matchGroup) {
                 await strainVerse().from('matchit_interactions').update({ status: 'MATCHED', group_id: matchGroup.id }).or(`id.eq.${data.id},id.eq.${mutual.id}`);
                 mutualMatch = matchGroup;
             }
@@ -953,17 +1005,9 @@ export const api = {
   },
 
   respondToVibe: async (interactionId: string, senderId: string, receiverId: string, response: 'MATCHED' | 'DECLINED'): Promise<Group | null> => {
+      // Unilateral "Match" no longer unlocks chat — both must flame (SPARK) each other via sendVibe.
       if (response === 'MATCHED') {
-          const matchGroup = await api.createMatchChat(senderId, receiverId);
-          if (!matchGroup) {
-            throw new Error('Could not create match chat. Please try again.');
-          }
-          const { error } = await strainVerse().from('matchit_interactions').update({ status: 'MATCHED', group_id: matchGroup.id }).eq('id', interactionId);
-          if (error) {
-              console.error("Error updating interaction status:", error);
-              throw error;
-          }
-          return matchGroup;
+          throw new Error('Flame them back to unlock chat — you both need to hit the flame.');
       }
 
       const { error } = await strainVerse().from('matchit_interactions').update({ status: 'DECLINED' }).eq('id', interactionId);

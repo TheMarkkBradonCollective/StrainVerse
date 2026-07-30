@@ -37,9 +37,12 @@ const VibeTapModal: React.FC<VibeTapModalProps> = ({ onClose, onSend, userName }
             onClick={() => handleSend("Spark!", 'SPARK', 'SPARK')}
             className="w-full bg-gradient-to-r from-orange-500 to-yellow-400 text-white font-bold py-3 px-4 rounded-lg shadow-lg shadow-orange-500/30 transition-all hover:scale-105 active:scale-100 disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {isLoading && loadingType === 'SPARK' ? <Loader2 className="animate-spin" /> : <>Send a Spark! <Flame size={18} /></>}
+            {isLoading && loadingType === 'SPARK' ? <Loader2 className="animate-spin" /> : <>Hit the flame <Flame size={18} /></>}
           </button>
-          <div className="text-center text-xs text-[var(--text-muted)]">or choose a quick vibe...</div>
+          <p className="text-center text-xs text-[var(--text-muted)]">
+            Chat unlocks only if they flame you back too.
+          </p>
+          <div className="text-center text-xs text-[var(--text-muted)]">or send a quick vibe (no chat unlock)…</div>
           <div className="grid grid-cols-2 gap-2">
             {vibes.map((vibe, index) => (
               <button 
