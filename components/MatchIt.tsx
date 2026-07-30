@@ -1225,14 +1225,6 @@ const MatchIt: React.FC<{
         <VibeTapModal userName={tappingPerson.name} onClose={() => setTappingPerson(null)} onSend={handleSendVibe} />
       )}
       {showIntentGlossary && <IntentGlossaryModal onClose={() => setShowIntentGlossary(false)} />}
-      {showSelfProfile && (
-        <MatchItSelfProfileModal
-          user={user}
-          lookingForLabels={lookingFor.map(lookingForLabel)}
-          onClose={() => setShowSelfProfile(false)}
-          onSaved={refreshUser}
-        />
-      )}
       {matchSuccessInfo && (
         <MatchSuccessModal info={matchSuccessInfo} onClose={() => setMatchSuccessInfo(null)} onGoToSesh={onMatch} />
       )}
@@ -1354,7 +1346,15 @@ const MatchIt: React.FC<{
   };
 
   return (
-    <div className="flex flex-col h-full min-h-0 overflow-hidden">
+    <div className="flex flex-col h-full min-h-0 overflow-hidden relative">
+      {showSelfProfile && (
+        <MatchItSelfProfileModal
+          user={user}
+          lookingForLabels={lookingFor.map(lookingForLabel)}
+          onClose={() => setShowSelfProfile(false)}
+          onSaved={refreshUser}
+        />
+      )}
       <div className="flex-shrink-0 flex border-b border-[var(--border)] bg-[var(--bg-card)]">
         <button
           onClick={() => setActiveTab('FIND')}
@@ -1375,6 +1375,20 @@ const MatchIt: React.FC<{
           <div className="h-full overflow-y-auto">{renderChats()}</div>
         )}
       </div>
+
+      <button
+        type="button"
+        onClick={() => setShowSelfProfile(true)}
+        className="fixed bottom-24 lg:bottom-8 right-6 z-30 bg-orange-500 hover:bg-orange-600 w-14 h-14 rounded-full flex items-center justify-center shadow-[var(--shadow-color)] transition-transform hover:scale-105 active:scale-95"
+        aria-label="Edit your MatchIt profile"
+        title="Your MatchIt look"
+      >
+        {user.avatar ? (
+          <img src={user.avatar} alt="" className="w-14 h-14 rounded-full object-cover border-2 border-white/80" />
+        ) : (
+          <UserRound size={28} className="text-white" />
+        )}
+      </button>
     </div>
   );
 };
