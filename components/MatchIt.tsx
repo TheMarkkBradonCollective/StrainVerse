@@ -66,9 +66,9 @@ const resolveLookingForToken = (token: string): LookingForId | null => {
 const VIEW_MODE_KEY = 'matchit-nearby-view';
 const FILTER_KEY = 'matchit-intent-filters';
 
-/** Parse stored looking-for (JSON ids/labels or legacy single string). */
+/** Parse stored looking-for (JSON ids/labels or legacy single string). Empty = nothing selected. */
 export const parseLookingFor = (raw?: string | null): LookingForId[] => {
-  if (!raw?.trim()) return ['match'];
+  if (!raw?.trim()) return [];
   const trimmed = raw.trim();
   const collect = (tokens: string[]): LookingForId[] => {
     const seen = new Set<LookingForId>();
@@ -83,8 +83,7 @@ export const parseLookingFor = (raw?: string | null): LookingForId[] => {
     try {
       const parsed = JSON.parse(trimmed);
       if (Array.isArray(parsed)) {
-        const valid = collect(parsed.filter((v): v is string => typeof v === 'string'));
-        if (valid.length) return valid;
+        return collect(parsed.filter((v): v is string => typeof v === 'string'));
       }
     } catch {
       /* fall through */
@@ -94,12 +93,11 @@ export const parseLookingFor = (raw?: string | null): LookingForId[] => {
   const single = resolveLookingForToken(trimmed);
   if (single) return [single];
 
-  const parts = collect(trimmed.split(','));
-  return parts.length ? parts : ['match'];
+  return collect(trimmed.split(','));
 };
 
 export const serializeLookingFor = (values: LookingForId[]): string =>
-  JSON.stringify(values.length ? values : (['match'] as LookingForId[]));
+  values.length ? JSON.stringify(values) : '';
 
 const personMatchesFilters = (person: MatchPerson, filters: LookingForId[]): boolean => {
   if (filters.length === 0) return true;
@@ -463,7 +461,7 @@ const MatchIt: React.FC<{
 
   useEffect(() => {
     setShowInMatchIt(Boolean(user.showInMatchIt));
-    if (user.matchLookingFor) setLookingFor(parseLookingFor(user.matchLookingFor));
+    setLookingFor(parseLookingFor(user.matchLookingFor));
   }, [user.showInMatchIt, user.matchLookingFor]);
 
   useEffect(() => {
@@ -509,8 +507,6 @@ const MatchIt: React.FC<{
     const next = lookingFor.includes(option)
       ? lookingFor.filter(v => v !== option)
       : [...lookingFor, option];
-    // Keep at least one intent selected
-    if (next.length === 0) return;
     setLookingFor(next);
     if (!showInMatchIt) return;
     try {
