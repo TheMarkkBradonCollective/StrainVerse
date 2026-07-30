@@ -4,6 +4,22 @@ import { User } from '../types';
 import { api } from '../services/supabaseClient';
 
 const SMOKING_STYLES: NonNullable<User['smokingStyle']>[] = ['Joint', 'Blunt', 'Glass', 'Vape', 'Edibles'];
+const STRAIN_PREFS: Array<{ id: NonNullable<User['matchStrainPrefs']>[number]; label: string }> = [
+  { id: 'indica', label: 'Indica' },
+  { id: 'sativa', label: 'Sativa' },
+  { id: 'hybrid', label: 'Hybrid' },
+];
+
+const ageFromDob = (dob?: string): number | null => {
+  if (!dob) return null;
+  const birthDate = new Date(dob);
+  if (Number.isNaN(birthDate.getTime())) return null;
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+  return age;
+};
 
 interface MatchItSelfProfileModalProps {
   user: User;
@@ -23,10 +39,17 @@ const MatchItSelfProfileModal: React.FC<MatchItSelfProfileModalProps> = ({
   const [name, setName] = useState(user.name || '');
   const [bio, setBio] = useState(user.bio || '');
   const [smokingStyle, setSmokingStyle] = useState(user.smokingStyle || '');
+  const [strainPrefs, setStrainPrefs] = useState<NonNullable<User['matchStrainPrefs']>>(
+    () => user.matchStrainPrefs || []
+  );
+  const [dateOfBirth, setDateOfBirth] = useState(user.dateOfBirth || '');
   const [avatarPreview, setAvatarPreview] = useState(user.avatar || '');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+
+  const lockedDob = Boolean(user.dateOfBirth);
+  const previewAge = ageFromDob(dateOfBirth);
 
   const handlePickPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -44,11 +67,26 @@ const MatchItSelfProfileModal: React.FC<MatchItSelfProfileModalProps> = ({
     setAvatarPreview(URL.createObjectURL(file));
   };
 
+  const toggleStrainPref = (id: NonNullable<User['matchStrainPrefs']>[number]) => {
+    setStrainPrefs(prev => (prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id]));
+  };
+
   const handleSave = async () => {
     const trimmed = name.trim();
     if (!trimmed) {
       setError('Add a display name / tag others will see.');
       return;
+    }
+    if (!lockedDob) {
+      if (!dateOfBirth) {
+        setError('Add your date of birth so age can show on your card (21+).');
+        return;
+      }
+      const age = ageFromDob(dateOfBirth);
+      if (age == null || age < 21) {
+        setError('You must be 21 or older for MatchIt.');
+        return;
+      }
     }
     setIsSaving(true);
     setError('');
@@ -59,12 +97,17 @@ const MatchItSelfProfileModal: React.FC<MatchItSelfProfileModalProps> = ({
         if (!uploaded) throw new Error('Could not upload photo. Try again.');
         avatarUrl = uploaded;
       }
-      await api.updateProfile(user.id, {
+      const updates: Partial<User> = {
         name: trimmed,
         bio: bio.trim(),
         smokingStyle: (smokingStyle || undefined) as User['smokingStyle'],
         avatar: avatarUrl,
-      });
+        matchStrainPrefs: strainPrefs,
+      };
+      if (!lockedDob && dateOfBirth) {
+        updates.dateOfBirth = dateOfBirth;
+      }
+      await api.updateProfile(user.id, updates);
       await onSaved();
       onClose();
     } catch (e: any) {
@@ -153,6 +196,34 @@ const MatchItSelfProfileModal: React.FC<MatchItSelfProfileModalProps> = ({
 
             <div>
               <label className="block text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)] mb-1.5">
+                Age
+              </label>
+              {lockedDob ? (
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex px-3 py-1.5 rounded-full text-xs font-bold bg-orange-500 text-white">
+                    {previewAge != null ? `${previewAge}` : '—'}
+                  </span>
+                  <p className="text-[11px] text-[var(--text-muted)]">From your date of birth (locked)</p>
+                </div>
+              ) : (
+                <>
+                  <input
+                    type="date"
+                    value={dateOfBirth}
+                    onChange={e => setDateOfBirth(e.target.value)}
+                    className="w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-xl p-3 text-sm focus:outline-none focus:border-orange-400"
+                  />
+                  <p className="text-[11px] text-[var(--text-muted)] mt-1">
+                    {previewAge != null
+                      ? `Shows as age ${previewAge} on your card. Must be 21+. Can't change later.`
+                      : 'Add DOB so your age shows on your card (21+, locked after save).'}
+                  </p>
+                </>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)] mb-1.5">
                 Short bio
               </label>
               <textarea
@@ -163,6 +234,32 @@ const MatchItSelfProfileModal: React.FC<MatchItSelfProfileModalProps> = ({
                 placeholder="One line others might vibe with…"
                 className="w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-xl p-3 text-sm resize-none focus:outline-none focus:border-orange-400"
               />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)] mb-1.5">
+                Strain type
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {STRAIN_PREFS.map(opt => {
+                  const on = strainPrefs.includes(opt.id);
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => toggleStrainPref(opt.id)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
+                        on
+                          ? 'bg-orange-500 border-orange-500 text-white'
+                          : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--text-muted)]'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div>

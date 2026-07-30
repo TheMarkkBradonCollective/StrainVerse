@@ -350,8 +350,25 @@ const MatchSuccessModal: React.FC<{
   </div>
 );
 
+const strainPrefLabel = (prefs?: MatchPerson['matchStrainPrefs']) =>
+  (prefs || []).map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' · ');
+
 /** Grindr-style photo tile — vibe first, no open chat until matched */
-const SelfProfileCard: React.FC<{ user: User; onEdit: () => void }> = ({ user, onEdit }) => (
+const SelfProfileCard: React.FC<{ user: User; onEdit: () => void }> = ({ user, onEdit }) => {
+  const age = user.dateOfBirth
+    ? (() => {
+        const birthDate = new Date(user.dateOfBirth);
+        if (Number.isNaN(birthDate.getTime())) return null;
+        const today = new Date();
+        let a = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) a--;
+        return a;
+      })()
+    : null;
+  const strainLabel = strainPrefLabel(user.matchStrainPrefs);
+
+  return (
   <button
     type="button"
     onClick={onEdit}
@@ -369,16 +386,35 @@ const SelfProfileCard: React.FC<{ user: User; onEdit: () => void }> = ({ user, o
       You
     </span>
     <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
-      <h3 className="font-extrabold text-lg leading-tight truncate">{user.name || 'Add your tag'}</h3>
+      <h3 className="font-extrabold text-lg leading-tight truncate">
+        {user.name || 'Add your tag'}
+        {age != null ? <span className="font-bold opacity-90">, {age}</span> : null}
+      </h3>
+      {strainLabel && <p className="text-[11px] text-white/80 font-semibold mt-0.5">{strainLabel}</p>}
       <LookingForDisplay raw={user.matchLookingFor} className="mt-1" />
       <p className="mt-3 w-full bg-white/15 group-hover:bg-white/25 text-white text-sm font-bold py-2 rounded-full flex items-center justify-center gap-2 transition-colors">
         <Camera size={14} /> Edit your look
       </p>
     </div>
   </button>
-);
+  );
+};
 
-const SelfProfileListRow: React.FC<{ user: User; onEdit: () => void }> = ({ user, onEdit }) => (
+const SelfProfileListRow: React.FC<{ user: User; onEdit: () => void }> = ({ user, onEdit }) => {
+  const age = user.dateOfBirth
+    ? (() => {
+        const birthDate = new Date(user.dateOfBirth);
+        if (Number.isNaN(birthDate.getTime())) return null;
+        const today = new Date();
+        let a = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) a--;
+        return a;
+      })()
+    : null;
+  const strainLabel = strainPrefLabel(user.matchStrainPrefs);
+
+  return (
   <button
     type="button"
     onClick={onEdit}
@@ -395,19 +431,26 @@ const SelfProfileListRow: React.FC<{ user: User; onEdit: () => void }> = ({ user
     </div>
     <div className="flex-1 min-w-0">
       <div className="flex items-center gap-2 flex-wrap">
-        <h3 className="font-extrabold text-[var(--text-main)] truncate">{user.name || 'Add your tag'}</h3>
+        <h3 className="font-extrabold text-[var(--text-main)] truncate">
+          {user.name || 'Add your tag'}
+          {age != null ? <span className="font-bold text-[var(--text-muted)]">, {age}</span> : null}
+        </h3>
         <span className="inline-flex items-center gap-1 text-[10px] font-bold text-orange-600 bg-orange-500/10 px-2 py-0.5 rounded-full">
           You
         </span>
       </div>
+      {strainLabel && (
+        <p className="text-[11px] font-semibold text-[var(--text-secondary)] mt-0.5">{strainLabel}</p>
+      )}
       <LookingForDisplay raw={user.matchLookingFor} className="mt-1 text-orange-600" compact />
-      <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Tap to edit photo, tag &amp; style</p>
+      <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Tap to edit photo, tag, age &amp; style</p>
     </div>
     <span className="flex-shrink-0 w-10 h-10 rounded-full bg-orange-500 text-white flex items-center justify-center">
       <UserRound size={18} />
     </span>
   </button>
-);
+  );
+};
 
 /** Grindr-style photo tile — vibe first, no open chat until matched */
 const PersonCard: React.FC<{
@@ -450,7 +493,15 @@ const PersonCard: React.FC<{
       </div>
 
       <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
-        <h3 className="font-extrabold text-lg leading-tight truncate">{person.name}</h3>
+        <h3 className="font-extrabold text-lg leading-tight truncate">
+          {person.name}
+          {person.age != null ? <span className="font-bold opacity-90">, {person.age}</span> : null}
+        </h3>
+        {strainPrefLabel(person.matchStrainPrefs) && (
+          <p className="text-[11px] text-white/80 font-semibold mt-0.5">
+            {strainPrefLabel(person.matchStrainPrefs)}
+          </p>
+        )}
         <LookingForDisplay raw={person.matchLookingFor} className="mt-1" />
         {person.smokingStyle && (
           <p className="text-[11px] text-white/70 mt-0.5 flex items-center gap-1">
@@ -488,11 +539,19 @@ const PersonListRow: React.FC<{
       />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <h3 className="font-extrabold text-[var(--text-main)] truncate">{person.name}</h3>
+          <h3 className="font-extrabold text-[var(--text-main)] truncate">
+            {person.name}
+            {person.age != null ? <span className="font-bold text-[var(--text-muted)]">, {person.age}</span> : null}
+          </h3>
           <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[var(--text-muted)]">
             <MapPin size={11} /> {distanceLabel(person)}
           </span>
         </div>
+        {strainPrefLabel(person.matchStrainPrefs) && (
+          <p className="text-[11px] font-semibold text-[var(--text-secondary)] mt-0.5">
+            {strainPrefLabel(person.matchStrainPrefs)}
+          </p>
+        )}
         <LookingForDisplay raw={person.matchLookingFor} className="mt-1 text-orange-600" compact />
         {person.smokingStyle && (
           <p className="text-[11px] text-[var(--text-muted)] mt-0.5 flex items-center gap-1 truncate">

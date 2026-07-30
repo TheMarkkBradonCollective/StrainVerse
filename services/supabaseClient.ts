@@ -19,6 +19,27 @@ const deriveProfileFromAuthUser = (authUser: AuthUser): { name: string; handle: 
   return { name: String(name).slice(0, 80), handle: sanitizeHandle(String(rawHandle)), dob };
 };
 
+const MATCH_STRAIN_PREF_IDS = ['indica', 'sativa', 'hybrid'] as const;
+type MatchStrainPref = (typeof MATCH_STRAIN_PREF_IDS)[number];
+
+const parseMatchStrainPrefs = (raw: unknown): MatchStrainPref[] | undefined => {
+  if (typeof raw !== 'string' || !raw.trim()) return undefined;
+  const trimmed = raw.trim();
+  try {
+    const parsed = trimmed.startsWith('[') ? JSON.parse(trimmed) : trimmed.split(',');
+    if (!Array.isArray(parsed)) return undefined;
+    const valid = parsed
+      .map((v) => String(v).trim().toLowerCase())
+      .filter((v): v is MatchStrainPref => (MATCH_STRAIN_PREF_IDS as readonly string[]).includes(v));
+    return valid.length ? [...new Set(valid)] : undefined;
+  } catch {
+    const single = trimmed.toLowerCase();
+    return (MATCH_STRAIN_PREF_IDS as readonly string[]).includes(single)
+      ? [single as MatchStrainPref]
+      : undefined;
+  }
+};
+
 const mapProfileRow = (data: Record<string, unknown>): User => {
   const badges = Array.isArray(data.badges) ? data.badges : [];
   return {
@@ -35,6 +56,7 @@ const mapProfileRow = (data: Record<string, unknown>): User => {
     matchLookingFor: typeof data.matchit_looking_for === 'string' ? data.matchit_looking_for : undefined,
     favStrains: Array.isArray(data.fav_strains) ? (data.fav_strains as string[]) : undefined,
     smokingStyle: data.smoking_style as User['smokingStyle'],
+    matchStrainPrefs: parseMatchStrainPrefs(data.matchit_strain_prefs),
   } as User;
 };
 
@@ -312,7 +334,7 @@ export const api = {
   },
 
   updateProfile: async (userId: string, updates: Partial<User>) => {
-    const { name, bio, city, state, favStrains, smokingStyle, dateOfBirth, showInMatchIt, matchLookingFor, avatar } = updates;
+    const { name, bio, city, state, favStrains, smokingStyle, dateOfBirth, showInMatchIt, matchLookingFor, avatar, matchStrainPrefs } = updates;
     
     // Map application's camelCase to database's snake_case
     const dbPayload: { [key: string]: any } = {};
@@ -327,6 +349,11 @@ export const api = {
     if (showInMatchIt !== undefined) dbPayload.show_in_matchit = showInMatchIt;
     if (matchLookingFor !== undefined) dbPayload.matchit_looking_for = matchLookingFor;
     if (avatar !== undefined) dbPayload.avatar = avatar;
+    if (matchStrainPrefs !== undefined) {
+      dbPayload.matchit_strain_prefs = matchStrainPrefs.length
+        ? JSON.stringify(matchStrainPrefs)
+        : null;
+    }
     
     if (Object.keys(dbPayload).length === 0) return;
     
@@ -766,7 +793,7 @@ export const api = {
     // Case-insensitive city/state match so "Sacramento" / "sacramento" still connect
     const { data, error } = await strainVerse()
       .from('profiles')
-      .select('id, name, handle, avatar, bio, city, state, latitude, longitude, smoking_style, fav_strains, matchit_looking_for, show_in_matchit, date_of_birth, status')
+      .select('id, name, handle, avatar, bio, city, state, latitude, longitude, smoking_style, fav_strains, matchit_looking_for, matchit_strain_prefs, show_in_matchit, date_of_birth, status')
       .eq('show_in_matchit', true)
       .ilike('city', city)
       .ilike('state', state)
@@ -806,6 +833,8 @@ export const api = {
           matchLookingFor: p.matchit_looking_for || undefined,
           smokingStyle: p.smoking_style || undefined,
           favStrains: Array.isArray(p.fav_strains) ? p.fav_strains : undefined,
+          matchStrainPrefs: parseMatchStrainPrefs(p.matchit_strain_prefs),
+          age: calculateAgeFromDob(p.date_of_birth),
         } as MatchPerson;
       })
       .filter((p) => p.distance == null || p.distance <= radius)

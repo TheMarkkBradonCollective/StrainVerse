@@ -84,6 +84,8 @@ export interface User {
   state?: string;
   favStrains?: string[];
   smokingStyle?: 'Joint' | 'Blunt' | 'Glass' | 'Vape' | 'Edibles';
+  /** MatchIt preferred flower types — Indica / Sativa / Hybrid (JSON array in DB) */
+  matchStrainPrefs?: Array<'indica' | 'sativa' | 'hybrid'>;
   badges?: Badge[];
   dateOfBirth?: string; // YYYY-MM-DD
   status?: 'active' | 'shadow_banned' | 'banned';
@@ -108,6 +110,9 @@ export interface MatchPerson {
   matchLookingFor?: string;
   smokingStyle?: string;
   favStrains?: string[];
+  matchStrainPrefs?: Array<'indica' | 'sativa' | 'hybrid'>;
+  /** Age derived from DOB for MatchIt cards (21+) */
+  age?: number | null;
 }
 
 export type PostVisibility =
