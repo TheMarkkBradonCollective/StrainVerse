@@ -25,3 +25,9 @@ dist-ssr
 *.sln
 *.sw?
 landing.png
+
+# Android signing (never commit)
+android/*.keystore
+android/*.jks
+*.keystore
+*.jks

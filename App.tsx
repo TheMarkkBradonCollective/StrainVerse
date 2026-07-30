@@ -14,9 +14,9 @@ import HighlineFeed from './components/HighlineFeed';
 import SocialSeshDirectory from './components/SocialSeshDirectory';
 import SocialSeshView from './components/SocialSeshView';
 import CreateStoryModal from './components/CreateStoryModal';
-import InstallPrompt from './components/InstallPrompt';
-import { LogoMark } from './components/Logo';
+import Logo, { LogoMark } from './components/Logo';
 import { getVisibleNavItems } from './navConfig';
+import { formatAppVersion } from './utils/appVersion';
 
 
 // --- VIEW CONFIGURATION ---
@@ -124,7 +124,20 @@ const RightSidebar: React.FC<{ user: User }> = ({ user }) => {
     );
 };
 
-const Header: React.FC<{ title: string, onBack?: () => void, currentView: AppView }> = ({ title, onBack, currentView }) => {
+const Header: React.FC<{
+  title: string;
+  onBack?: () => void;
+  currentView: AppView;
+  branded?: boolean;
+}> = ({ title, onBack, currentView, branded = false }) => {
+    if (branded) {
+        return (
+            <header className="px-4 pt-3 pb-3 border-b border-[var(--border)] sticky top-0 bg-[var(--bg-main)]/90 backdrop-blur-md z-20">
+                <Logo showTagline size="lg" titleClassName="text-2xl sm:text-3xl" className="fade-in-up" />
+            </header>
+        );
+    }
+
     return (
         <header className="p-4 border-b border-[var(--border)] sticky top-0 bg-[var(--bg-main)]/85 backdrop-blur-md z-10 flex items-center justify-center">
             {onBack && (
@@ -231,7 +244,7 @@ const App: React.FC = () => {
         setGroups(await api.getAllGroups());
     };
     
-    const refreshCurrentViewPosts = async () => {
+    const refreshCurrentViewPosts = async (opts?: { silent?: boolean }) => {
         if (!user) return;
         
         // MatchIt is a people feed now — it loads its own data
@@ -241,7 +254,7 @@ const App: React.FC = () => {
         if (currentView === AppView.HERBHUB) viewType = 'HIGHLINE';
 
         if (viewType) {
-             setIsPostsLoading(true);
+             if (!opts?.silent) setIsPostsLoading(true);
              api.getPosts(viewType, user).then(fetchedPosts => {
                 setPosts(fetchedPosts);
                 setIsPostsLoading(false);
@@ -280,11 +293,42 @@ const App: React.FC = () => {
         };
         fetchInitialData();
 
+        // Auto-refresh stories / groups / profile posts while the app is open
+        const softRefresh = () => {
+            if (document.visibilityState !== 'visible') return;
+            void fetchGroups();
+            void api.getStories().then(setStories);
+            void api.getPostsForUser(user.id).then(setMyPosts);
+            void api.getTriedStrains(user.id).then(setTriedStrains);
+        };
+        const onVisible = () => softRefresh();
+        document.addEventListener('visibilitychange', onVisible);
+        const intervalId = window.setInterval(softRefresh, 60 * 1000);
+        return () => {
+            document.removeEventListener('visibilitychange', onVisible);
+            window.clearInterval(intervalId);
+        };
     }, [user]);
     
     // --- DATA FETCHING based on view ---
     useEffect(() => {
         refreshCurrentViewPosts();
+    }, [currentView, user]);
+
+    // Auto-refresh the active feed while HerbHub is open
+    useEffect(() => {
+        if (!user || currentView !== AppView.HERBHUB) return;
+        const tick = () => {
+            if (document.visibilityState !== 'visible') return;
+            void refreshCurrentViewPosts({ silent: true });
+        };
+        const onVisible = () => tick();
+        document.addEventListener('visibilitychange', onVisible);
+        const intervalId = window.setInterval(tick, 45 * 1000);
+        return () => {
+            document.removeEventListener('visibilitychange', onVisible);
+            window.clearInterval(intervalId);
+        };
     }, [currentView, user]);
 
     // --- ACTIONS ---
@@ -437,7 +481,7 @@ const App: React.FC = () => {
         const navItems = getVisibleNavItems(userAge);
 
         return (
-            <nav className="fixed bottom-3 left-3 right-3 h-[4.25rem] bg-[var(--bg-card)]/95 backdrop-blur-xl border border-[var(--border)] rounded-[1.75rem] flex justify-around items-center z-40 lg:hidden shadow-[var(--shadow-soft)]">
+            <nav className="fixed bottom-3 left-3 right-3 h-[4.25rem] bg-[var(--bg-card)]/95 backdrop-blur-xl border border-[var(--border)] rounded-[1.75rem] flex justify-around items-center z-40 lg:hidden shadow-[var(--shadow-soft)] pb-[env(safe-area-inset-bottom,0px)]">
                 {navItems.map(item => (
                     <button key={item.view} onClick={() => setView(item.view)} className={`flex flex-col items-center gap-0.5 transition-all w-full ${currentView === item.view ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'}`}>
                         <span className={`p-1.5 rounded-2xl transition-colors ${currentView === item.view ? 'bg-[var(--accent-soft)]' : ''}`}>
@@ -496,8 +540,11 @@ const App: React.FC = () => {
     if (!sessionChecked) {
         return (
             <div className="h-screen w-full flex flex-col items-center justify-center gap-4 bg-[var(--bg-main)]">
-                <LogoMark size="xl" />
+                <LogoMark size="xl" className="float-y" />
                 <p className="text-lg animate-pulse text-[var(--accent)]">Loading Your Universe...</p>
+                <p className="text-xs font-semibold tracking-wide text-[var(--text-muted)]/80">
+                    StrainVerse {formatAppVersion()}
+                </p>
             </div>
         );
     }
@@ -507,12 +554,7 @@ const App: React.FC = () => {
     }
 
     if (!user) {
-        return (
-            <>
-                <LandingPage onSuccess={checkSession} />
-                <InstallPrompt />
-            </>
-        );
+        return <LandingPage onSuccess={checkSession} />;
     }
 
     const showBackButton = !!selectedStrain || !!activeGroup;
@@ -521,11 +563,15 @@ const App: React.FC = () => {
         if (activeGroup) setActiveGroup(null);
     }
 
+    const isMatchItMapShell = currentView === AppView.MATCHIT && !activeGroup && !selectedStrain;
+    const showBrandedHeader =
+        currentView === AppView.STRAINVERSE && !selectedStrain && !activeGroup;
+
     return (
-        <div className="bg-[var(--bg-main)] text-[var(--text-main)] font-sans min-h-screen">
+        <div className="bg-[var(--bg-main)] text-[var(--text-main)] font-sans min-h-screen overflow-x-hidden">
              {isCreateStoryModalOpen && <CreateStoryModal onClose={() => setIsCreateStoryModalOpen(false)} onPost={handleCreateStory} />}
 
-            <div className="flex max-w-[1920px] mx-auto">
+            <div className="flex max-w-[1920px] mx-auto min-h-screen">
                 <Sidebar
                     currentView={currentView}
                     setView={handleSetView}
@@ -533,9 +579,16 @@ const App: React.FC = () => {
                     onSignOut={handleSignOut}
                     userAge={userAge}
                 />
-                <main className="flex-1 min-w-0 flex flex-col h-screen">
-                    <Header title={getHeaderTitle()} onBack={showBackButton ? handleBack : undefined} currentView={currentView} />
-                    <div className="flex-1 overflow-y-auto">
+                <main className="flex-1 min-w-0 flex flex-col h-[100dvh] max-h-[100dvh]">
+                    {!isMatchItMapShell && (
+                      <Header
+                        title={getHeaderTitle()}
+                        onBack={showBackButton ? handleBack : undefined}
+                        currentView={currentView}
+                        branded={showBrandedHeader}
+                      />
+                    )}
+                    <div className={`flex-1 min-h-0 ${isMatchItMapShell ? 'overflow-hidden' : 'overflow-y-auto'}`}>
                         {renderCurrentView()}
                     </div>
                 </main>
@@ -544,7 +597,6 @@ const App: React.FC = () => {
             </div>
 
             <BottomNavBar currentView={currentView} setView={handleSetView} userAge={userAge} />
-            <InstallPrompt />
         </div>
     );
 };

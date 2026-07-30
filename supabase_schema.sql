@@ -1,0 +1,3 @@
+-- StrainVerse schema entrypoint (synced by npm run update)
+-- Prefer: sql/complete-schema.sql or sql/update.sql in the Supabase SQL editor.
+-- Last synced: 2026-07-30T00:52:44.899Z (app v1.1.0)

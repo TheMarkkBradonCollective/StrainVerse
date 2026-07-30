@@ -1,0 +1,26 @@
+{
+  "packageId": "com.themarkkbradoncollective.strainverse",
+  "name": "StrainVerse",
+  "launcherName": "StrainVerse",
+  "display": "standalone",
+  "themeColor": "#0a0a0a",
+  "navigationColor": "#0a0a0a",
+  "navigationColorDark": "#0a0a0a",
+  "backgroundColor": "#0a0a0a",
+  "enableNotifications": false,
+  "startUrl": "/",
+  "iconUrl": "../public/pwa-512.png",
+  "maskableIconUrl": "../public/pwa-512-maskable.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "strainverse"
+  },
+  "appVersionName": "1.1.0",
+  "appVersionCode": 110,
+  "shortcuts": [],
+  "generatorApp": "strainverse-update",
+  "webManifestUrl": "/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {}
+}

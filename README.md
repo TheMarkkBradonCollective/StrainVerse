@@ -17,7 +17,11 @@ Cannabis-culture social network and community-sourced strain encyclopedia. Part 
    cp .env.example .env.local
    ```
    Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in `.env.local`.
-3. Run the dev server:
+3. Run readiness refresh (PWA icons, SQL update entrypoint, version stamp, Android TWA):
+   ```bash
+   npm run update
+   ```
+4. Run the dev server:
    ```bash
    npm run dev
    ```
@@ -25,4 +29,6 @@ Cannabis-culture social network and community-sourced strain encyclopedia. Part 
 
 ## Database setup
 
-Run `sql/complete-schema.sql` in the Supabase SQL Editor whenever you pull updates (safe to re-run). Optional strain data: `sql/seed-strains.sql` and `sql/seed-strains-extended.sql`. See `SPEC.md` for full documentation.
+After schema changes, run `sql/update.sql` (or `sql/complete-schema.sql`) in the Supabase SQL Editor (safe to re-run). Optional strain data: `sql/seed-strains.sql` and `sql/seed-strains-extended.sql`.
+
+Cursor slash command **`/update`** runs the same readiness workflow (see `.cursor/commands/update.md`). See `SPEC.md` for full documentation.

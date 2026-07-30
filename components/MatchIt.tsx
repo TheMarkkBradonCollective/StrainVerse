@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { User, Group, ReportCategory, MatchItInteraction, MatchPerson } from '../types';
-import { Flame, MapPin, AlertTriangle, ShieldOff, Flag, XCircle, Loader2, MessageSquare, Sparkles, MessageCircle, Leaf } from 'lucide-react';
+import { Flame, MapPin, AlertTriangle, ShieldOff, Flag, XCircle, Loader2, MessageSquare, Sparkles, MessageCircle, Leaf, Map, List } from 'lucide-react';
 import VibeTapModal from './VibeTapModal';
+import MatchItPeopleMap from './MatchItPeopleMap';
 import { api } from '../services/supabaseClient';
 
 const LOOKING_FOR_OPTIONS = [
@@ -163,6 +164,8 @@ const MatchIt: React.FC<{
   const [people, setPeople] = useState<MatchPerson[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'FIND' | 'CHATS'>('FIND');
+  const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
+  const [selectedMapPerson, setSelectedMapPerson] = useState<MatchPerson | null>(null);
   const [showInMatchIt, setShowInMatchIt] = useState(Boolean(user.showInMatchIt));
   const [lookingFor, setLookingFor] = useState(user.matchLookingFor || LOOKING_FOR_OPTIONS[0]);
   const [presenceSaving, setPresenceSaving] = useState(false);
@@ -171,8 +174,8 @@ const MatchIt: React.FC<{
   const [matchSuccessInfo, setMatchSuccessInfo] = useState<{ group: Group; otherUser: { name: string; avatar: string } } | null>(null);
   const [interactions, setInteractions] = useState<MatchItInteraction[]>([]);
 
-  const loadFeed = useCallback(async () => {
-    setIsLoading(true);
+  const loadFeed = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setIsLoading(true);
     const [nearby, vibes] = await Promise.all([
       api.getMatchItPeople(user),
       api.getMatchItInteractionsForUser(user.id),
@@ -191,6 +194,22 @@ const MatchIt: React.FC<{
     if (userAge && userAge >= 21 && user.city && user.state) {
       loadFeed();
     }
+  }, [userAge, user.city, user.state, loadFeed]);
+
+  // Auto-refresh nearby people while MatchIt is open
+  useEffect(() => {
+    if (!(userAge && userAge >= 21 && user.city && user.state)) return;
+    const soft = () => {
+      if (document.visibilityState !== 'visible') return;
+      void loadFeed({ silent: true });
+    };
+    const onVisible = () => soft();
+    document.addEventListener('visibilitychange', onVisible);
+    const intervalId = window.setInterval(soft, 60 * 1000);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.clearInterval(intervalId);
+    };
   }, [userAge, user.city, user.state, loadFeed]);
 
   const handleTogglePresence = async () => {
@@ -276,31 +295,44 @@ const MatchIt: React.FC<{
     );
   }
 
-  const renderFeed = () => (
-    <div className="pb-24 lg:pb-6 animate-in fade-in">
-      {tappingPerson && (
-        <VibeTapModal userName={tappingPerson.name} onClose={() => setTappingPerson(null)} onSend={handleSendVibe} />
-      )}
-      {matchSuccessInfo && (
-        <MatchSuccessModal info={matchSuccessInfo} onClose={() => setMatchSuccessInfo(null)} onGoToSesh={onMatch} />
-      )}
-      {reportingPerson && (
-        <ReportModal
-          person={reportingPerson}
-          onClose={() => setReportingPerson(null)}
-          onReport={onReportUser}
-        />
-      )}
+  const userCoords =
+    user.latitude != null && user.longitude != null
+      ? { lat: user.latitude, lng: user.longitude }
+      : null;
 
-      <div className="p-4 border-b border-[var(--border)] bg-[var(--bg-card)]/80 space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className={`text-sm font-extrabold ${showInMatchIt ? 'text-orange-600' : 'text-[var(--text-main)]'}`}>
-              Looking to smoke
-            </p>
-            <p className="text-xs text-[var(--text-muted)]">
-              {showInMatchIt ? 'You appear in the nearby feed' : 'Turn on to show up for people near you'}
-            </p>
+  const presenceBar = (
+    <div className="flex-shrink-0 p-3 sm:p-4 border-b border-[var(--border)] bg-[var(--bg-card)]/95 backdrop-blur-sm space-y-3 z-10">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className={`text-sm font-extrabold ${showInMatchIt ? 'text-orange-600' : 'text-[var(--text-main)]'}`}>
+            Looking to smoke
+          </p>
+          <p className="text-xs text-[var(--text-muted)] truncate">
+            {showInMatchIt ? 'You appear nearby' : 'Turn on to show up near you'}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex rounded-xl border border-[var(--border)] bg-[var(--bg-main)] p-0.5">
+            <button
+              type="button"
+              onClick={() => setViewMode('map')}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                viewMode === 'map' ? 'bg-orange-500 text-white' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+              }`}
+              aria-pressed={viewMode === 'map'}
+            >
+              <Map size={14} /> Map
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('list')}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                viewMode === 'list' ? 'bg-orange-500 text-white' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+              }`}
+              aria-pressed={viewMode === 'list'}
+            >
+              <List size={14} /> List
+            </button>
           </div>
           <button
             type="button"
@@ -316,77 +348,156 @@ const MatchIt: React.FC<{
             <span className={`inline-block h-6 w-6 rounded-full bg-white shadow transition-transform ${showInMatchIt ? 'translate-x-7' : 'translate-x-1'}`} />
           </button>
         </div>
-
-        {showInMatchIt && (
-          <select
-            value={lookingFor}
-            onChange={e => handleLookingForChange(e.target.value)}
-            className="w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-xl p-2.5 text-sm focus:outline-none focus:border-orange-400"
-          >
-            {LOOKING_FOR_OPTIONS.map(opt => (
-              <option key={opt} value={opt}>{opt}</option>
-            ))}
-          </select>
-        )}
-
-        <p className="text-xs text-[var(--text-muted)] flex items-center gap-1">
-          <MapPin size={12} /> People near {user.city}, {user.state}
-        </p>
       </div>
 
-      {incomingVibes.length > 0 && (
-        <div className="p-4 border-b border-[var(--border)] bg-orange-500/5 space-y-2">
-          <h5 className="text-sm font-bold text-orange-600">Incoming vibes</h5>
-          {incomingVibes.map(vibe => (
-            <div key={vibe.id} className="flex items-center justify-between bg-[var(--bg-card)] p-3 rounded-2xl border border-[var(--border)]">
-              <div className="flex items-center gap-2 min-w-0">
-                <img src={vibe.sender_avatar} className="w-10 h-10 rounded-full object-cover" alt="" />
-                <div className="min-w-0">
-                  <p className="text-sm font-bold truncate">{vibe.sender_name} {vibe.type === 'SPARK' && '🔥'}</p>
-                  <p className="text-xs text-[var(--text-muted)] italic truncate">"{vibe.message}"</p>
-                </div>
-              </div>
-              <div className="flex gap-2 flex-shrink-0">
-                <button onClick={() => handleRespondVibe(vibe, 'MATCHED')} className="px-3 py-1.5 text-xs font-bold bg-green-500 text-white rounded-full">Match</button>
-                <button onClick={() => handleRespondVibe(vibe, 'DECLINED')} className="p-2 text-[var(--text-muted)] hover:text-[var(--text-main)]"><XCircle size={16} /></button>
+      {showInMatchIt && (
+        <select
+          value={lookingFor}
+          onChange={e => handleLookingForChange(e.target.value)}
+          className="w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-xl p-2.5 text-sm focus:outline-none focus:border-orange-400"
+        >
+          {LOOKING_FOR_OPTIONS.map(opt => (
+            <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </select>
+      )}
+
+      <p className="text-xs text-[var(--text-muted)] flex items-center gap-1">
+        <MapPin size={12} /> People near {user.city}, {user.state}
+      </p>
+    </div>
+  );
+
+  const incomingVibesBar =
+    incomingVibes.length > 0 ? (
+      <div className="flex-shrink-0 p-3 sm:p-4 border-b border-[var(--border)] bg-orange-500/5 space-y-2 max-h-40 overflow-y-auto">
+        <h5 className="text-sm font-bold text-orange-600">Incoming vibes</h5>
+        {incomingVibes.map(vibe => (
+          <div key={vibe.id} className="flex items-center justify-between bg-[var(--bg-card)] p-3 rounded-2xl border border-[var(--border)]">
+            <div className="flex items-center gap-2 min-w-0">
+              <img src={vibe.sender_avatar} className="w-10 h-10 rounded-full object-cover" alt="" />
+              <div className="min-w-0">
+                <p className="text-sm font-bold truncate">{vibe.sender_name} {vibe.type === 'SPARK' && '🔥'}</p>
+                <p className="text-xs text-[var(--text-muted)] italic truncate">"{vibe.message}"</p>
               </div>
             </div>
-          ))}
+            <div className="flex gap-2 flex-shrink-0">
+              <button onClick={() => handleRespondVibe(vibe, 'MATCHED')} className="px-3 py-1.5 text-xs font-bold bg-green-500 text-white rounded-full">Match</button>
+              <button onClick={() => handleRespondVibe(vibe, 'DECLINED')} className="p-2 text-[var(--text-muted)] hover:text-[var(--text-main)]"><XCircle size={16} /></button>
+            </div>
+          </div>
+        ))}
+      </div>
+    ) : null;
+
+  const mapPersonSheet = selectedMapPerson ? (
+    <div className="absolute bottom-0 left-0 right-0 z-30 p-3 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] lg:pb-4 pointer-events-none">
+      <div className="pointer-events-auto max-w-lg mx-auto bg-[var(--bg-card)] border border-[var(--border)] rounded-[1.5rem] shadow-[var(--shadow-soft)] p-4 flex items-center gap-3">
+        <img src={selectedMapPerson.avatar} alt="" className="w-14 h-14 rounded-full object-cover border-2 border-orange-400" />
+        <div className="flex-1 min-w-0">
+          <h3 className="font-extrabold truncate">{selectedMapPerson.name}</h3>
+          {selectedMapPerson.matchLookingFor && (
+            <p className="text-xs text-orange-600 font-semibold truncate flex items-center gap-1">
+              <Flame size={12} /> {selectedMapPerson.matchLookingFor}
+            </p>
+          )}
+          {selectedMapPerson.distance != null && (
+            <p className="text-[11px] text-[var(--text-muted)] flex items-center gap-1 mt-0.5">
+              <MapPin size={11} /> {selectedMapPerson.distance < 1 ? `${Math.round(selectedMapPerson.distance * 1000)}m` : `${selectedMapPerson.distance.toFixed(1)} km`}
+            </p>
+          )}
         </div>
+        <div className="flex flex-col gap-2 flex-shrink-0">
+          <button
+            type="button"
+            disabled={sentToIds.has(selectedMapPerson.id)}
+            onClick={() => setTappingPerson(selectedMapPerson)}
+            className="px-3 py-2 text-xs font-bold bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white rounded-full"
+          >
+            {sentToIds.has(selectedMapPerson.id) ? 'Sent' : 'Vibe'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedMapPerson(null)}
+            className="text-[10px] text-[var(--text-muted)] hover:text-[var(--text-main)]"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
+  const renderFeed = () => (
+    <div className="flex flex-col h-full min-h-0 overflow-hidden animate-in fade-in">
+      {tappingPerson && (
+        <VibeTapModal userName={tappingPerson.name} onClose={() => setTappingPerson(null)} onSend={handleSendVibe} />
+      )}
+      {matchSuccessInfo && (
+        <MatchSuccessModal info={matchSuccessInfo} onClose={() => setMatchSuccessInfo(null)} onGoToSesh={onMatch} />
+      )}
+      {reportingPerson && (
+        <ReportModal
+          person={reportingPerson}
+          onClose={() => setReportingPerson(null)}
+          onReport={onReportUser}
+        />
       )}
 
-      {isLoading ? (
-        <div className="grid grid-cols-2 gap-3 p-4">
-          {[0, 1, 2, 3].map(i => (
-            <div key={i} className="aspect-[3/4] rounded-[1.5rem] bg-[var(--bg-input)] animate-pulse" />
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-3 p-4">
-          {people.map(person => (
-            <PersonCard
-              key={person.id}
-              person={person}
-              alreadySent={sentToIds.has(person.id)}
-              onVibe={() => setTappingPerson(person)}
-              onReport={() => setReportingPerson(person)}
-              onBlock={() => handleBlock(person)}
+      {presenceBar}
+      {incomingVibesBar}
+
+      <div className="relative flex-1 min-h-0">
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center h-full gap-3 p-4">
+            <Loader2 size={32} className="animate-spin text-orange-500" />
+            <p className="text-sm text-[var(--text-muted)]">Finding people nearby…</p>
+          </div>
+        ) : viewMode === 'map' ? (
+          <div className="absolute inset-0">
+            <MatchItPeopleMap
+              people={people}
+              userCoords={userCoords}
+              onSelectPerson={setSelectedMapPerson}
+              selectedPersonId={selectedMapPerson?.id}
+              fullScreen
             />
-          ))}
-        </div>
-      )}
-
-      {!isLoading && people.length === 0 && (
-        <div className="text-center py-16 text-[var(--text-muted)] px-6">
-          <Flame size={40} className="mx-auto mb-3 text-orange-400/50" />
-          <p className="font-bold text-lg text-[var(--text-main)]">Nobody nearby yet</p>
-          <p className="text-sm mt-1">
-            {showInMatchIt
-              ? 'Stay visible — when others nearby turn on Looking to smoke, they\'ll show up here.'
-              : 'Flip Looking to smoke on so people near you can find you.'}
-          </p>
-        </div>
-      )}
+            {people.length > 0 && (
+              <div className="absolute top-3 right-3 z-20 rounded-full bg-[var(--bg-card)]/95 border border-[var(--border)] px-3 py-1 text-[10px] font-semibold text-[var(--text-muted)] backdrop-blur-sm">
+                {people.length} nearby · tap pin for details
+              </div>
+            )}
+            {mapPersonSheet}
+          </div>
+        ) : (
+          <div className="h-full overflow-y-auto pb-24 lg:pb-6">
+            {people.length > 0 ? (
+              <div className="grid grid-cols-2 gap-3 p-4">
+                {people.map(person => (
+                  <PersonCard
+                    key={person.id}
+                    person={person}
+                    alreadySent={sentToIds.has(person.id)}
+                    onVibe={() => setTappingPerson(person)}
+                    onReport={() => setReportingPerson(person)}
+                    onBlock={() => handleBlock(person)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-16 text-[var(--text-muted)] px-6">
+                <Flame size={40} className="mx-auto mb-3 text-orange-400/50" />
+                <p className="font-bold text-lg text-[var(--text-main)]">Nobody nearby yet</p>
+                <p className="text-sm mt-1">
+                  {showInMatchIt
+                    ? 'Stay visible — when others nearby turn on Looking to smoke, they\'ll show up here.'
+                    : 'Flip Looking to smoke on so people near you can find you.'}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 
@@ -422,23 +533,23 @@ const MatchIt: React.FC<{
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex border-b border-[var(--border)] bg-[var(--bg-card)]">
+    <div className="flex flex-col h-full min-h-0 overflow-hidden">
+      <div className="flex-shrink-0 flex border-b border-[var(--border)] bg-[var(--bg-card)]">
         <button
           onClick={() => setActiveTab('FIND')}
-          className={`flex-1 py-4 text-sm font-bold border-b-2 transition-colors flex items-center justify-center gap-2 ${activeTab === 'FIND' ? 'border-orange-500 text-orange-500' : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
+          className={`flex-1 py-3.5 text-sm font-bold border-b-2 transition-colors flex items-center justify-center gap-2 ${activeTab === 'FIND' ? 'border-orange-500 text-orange-500' : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
         >
           <Sparkles size={16} /> Nearby
         </button>
         <button
           onClick={() => setActiveTab('CHATS')}
-          className={`flex-1 py-4 text-sm font-bold border-b-2 transition-colors flex items-center justify-center gap-2 ${activeTab === 'CHATS' ? 'border-orange-500 text-orange-500' : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
+          className={`flex-1 py-3.5 text-sm font-bold border-b-2 transition-colors flex items-center justify-center gap-2 ${activeTab === 'CHATS' ? 'border-orange-500 text-orange-500' : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
         >
           <MessageCircle size={16} /> Matches
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className={`flex-1 min-h-0 ${activeTab === 'FIND' && viewMode === 'map' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
         {activeTab === 'FIND' ? renderFeed() : renderChats()}
       </div>
     </div>

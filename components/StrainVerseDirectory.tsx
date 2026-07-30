@@ -3,7 +3,6 @@ import { Strain } from '../types';
 import { api } from '../services/supabaseClient';
 import { Search, Star, Image as ImageIcon, Loader2, Flame, Diamond, LayoutGrid, List } from 'lucide-react';
 import StrainVerseAppIcon from './icons/StrainVerseAppIcon';
-import Logo from './Logo';
 
 interface StrainVerseDirectoryProps {
   onStrainSelect: (strain: Strain) => void;
@@ -208,11 +207,8 @@ const StrainVerseDirectory: React.FC<StrainVerseDirectoryProps> = ({ onStrainSel
 
   return (
     <div className="p-4 pb-24 lg:pb-4">
-      <div className="mb-6 fade-in-up">
-        <Logo showTagline titleClassName="text-3xl" />
-      </div>
-      <div className="sticky top-0 bg-[var(--bg-main)]/85 backdrop-blur-md z-10 py-4 -my-4">
-          <div className="flex gap-2 mb-4">
+      <div className="sticky top-0 bg-[var(--bg-main)]/85 backdrop-blur-md z-10 py-4 -mt-4">
+          <div className="flex gap-2 mb-0">
             <div className="relative flex-1">
               <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
               <input

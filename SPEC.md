@@ -183,7 +183,7 @@ MatchIt is a **Grindr-style people feed**: nearby adults who want to smoke, not 
 
 #### Tabs
 
-1. **Nearby** — grid of people in your city/state (sorted by distance when lat/lng available)
+1. **Nearby** — Map (fullscreen pins; list does not show underneath) or List grid of people in your city/state (sorted by distance when lat/lng available)
 2. **Matches** — `MATCH` type groups where user is a member
 
 #### Person cards
@@ -435,7 +435,7 @@ All data access goes through `services/supabaseClient.ts` exports: `supabase`, `
 
 ## 8. Database Schema
 
-**Canonical SQL:** `sql/complete-schema.sql` (run in Supabase SQL Editor — safe to re-run on every update)
+**Canonical SQL:** `sql/complete-schema.sql` / `sql/update.sql` (run in Supabase SQL Editor — safe to re-run on every update; `npm run update` keeps them in sync)
 
 Schema namespace: `"StrainVerse"`
 
@@ -614,9 +614,12 @@ npm run dev    # http://localhost:3000
 ### Build
 
 ```bash
-npm run build
+npm run update   # refresh PWA icons, sql/update.sql, version.json, Android TWA metadata
+npm run build    # production bundle → dist/ (runs update first via prebuild)
 npm run preview
 ```
+
+Cursor slash command: **`/update`** — same readiness refresh workflow (see `.cursor/commands/update.md`).
 
 ### Env variables
 
@@ -639,8 +642,17 @@ npm run preview
 ├── details.txt                # Legacy feature notes
 ├── sql/
 │   ├── complete-schema.sql    # Canonical DB schema (re-run for all updates)
+│   ├── update.sql             # Synced from complete-schema by npm run update
 │   ├── seed-strains.sql       # Optional strain encyclopedia seed
 │   └── seed-strains-extended.sql  # Optional extended strain seed
+├── android/
+│   └── twa-manifest.json      # Android TWA / APK wrapper metadata
+├── scripts/
+│   ├── update.mjs             # /update readiness refresh
+│   └── generate-icons.mjs     # PWA / favicon generation
+├── utils/
+│   ├── appVersion.ts          # Version stamp for loading screen
+│   └── pwaInstall.ts
 ├── services/
 │   └── supabaseClient.ts      # Supabase client, auth, full API
 └── components/
@@ -650,7 +662,9 @@ npm run preview
     ├── StrainVerseDirectory.tsx
     ├── StrainProfilePage.tsx
     ├── HighlineFeed.tsx       # HerbHub
-    ├── MatchIt.tsx
+    ├── MatchIt.tsx            # Nearby map/list + matches
+    ├── MatchItPeopleMap.tsx   # Fullscreen MatchIt map
+    ├── PwaUpdateRefresh.tsx   # SW auto-update chip
     ├── SocialSeshDirectory.tsx
     ├── SocialSeshView.tsx
     ├── CreateSeshModal.tsx
@@ -678,7 +692,7 @@ npm run preview
 ### MatchIt match flow
 
 1. User 21+ with city/state flips **Looking to smoke** on (optionally sets looking-for status)
-2. Nearby people with presence on appear in the **Nearby** grid (by city/state, sorted by distance)
+2. Nearby people with presence on appear on the **Map** (fullscreen) or **List** grid — modes are exclusive (list does not show under the map)
 3. Send SPARK via Vibe modal → if mutual SPARK → match group auto-created → open chat
 4. TAP vibes → recipient sees incoming vibe → Match or Decline
 5. Matched users appear under **Matches** tab
