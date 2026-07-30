@@ -191,7 +191,6 @@ const MatchItSelfProfileModal: React.FC<MatchItSelfProfileModalProps> = ({
                 placeholder="How you show up nearby"
                 className="w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-xl p-3 text-sm font-bold focus:outline-none focus:border-orange-400"
               />
-              <p className="text-[11px] text-[var(--text-muted)] mt-1">@{user.handle}</p>
             </div>
 
             <div>
