@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { User, Group, ReportCategory, MatchItInteraction, MatchPerson, MatchItLocationShare } from '../types';
-import { Flame, MapPin, AlertTriangle, ShieldOff, Flag, XCircle, Loader2, MessageSquare, Sparkles, MessageCircle, Leaf, LayoutGrid, List, Map, CircleHelp } from 'lucide-react';
+import { Flame, MapPin, AlertTriangle, ShieldOff, Flag, XCircle, Loader2, MessageSquare, Sparkles, MessageCircle, Leaf, LayoutGrid, List, Map, CircleHelp, ChevronDown } from 'lucide-react';
 import VibeTapModal from './VibeTapModal';
 import MatchItPeopleMap, { sharesToMapPins, MapPin as MatchMapPin } from './MatchItPeopleMap';
 import { api } from '../services/supabaseClient';
@@ -65,10 +65,11 @@ const resolveLookingForToken = (token: string): LookingForId | null => {
 
 const VIEW_MODE_KEY = 'matchit-nearby-view';
 const FILTER_KEY = 'matchit-intent-filters';
+const FILTER_OPEN_KEY = 'matchit-filter-open';
 
-/** Parse stored looking-for (JSON ids/labels or legacy single string). */
+/** Parse stored looking-for (JSON ids/labels or legacy single string). Empty = nothing selected. */
 export const parseLookingFor = (raw?: string | null): LookingForId[] => {
-  if (!raw?.trim()) return ['match'];
+  if (!raw?.trim()) return [];
   const trimmed = raw.trim();
   const collect = (tokens: string[]): LookingForId[] => {
     const seen = new Set<LookingForId>();
@@ -83,8 +84,7 @@ export const parseLookingFor = (raw?: string | null): LookingForId[] => {
     try {
       const parsed = JSON.parse(trimmed);
       if (Array.isArray(parsed)) {
-        const valid = collect(parsed.filter((v): v is string => typeof v === 'string'));
-        if (valid.length) return valid;
+        return collect(parsed.filter((v): v is string => typeof v === 'string'));
       }
     } catch {
       /* fall through */
@@ -94,12 +94,11 @@ export const parseLookingFor = (raw?: string | null): LookingForId[] => {
   const single = resolveLookingForToken(trimmed);
   if (single) return [single];
 
-  const parts = collect(trimmed.split(','));
-  return parts.length ? parts : ['match'];
+  return collect(trimmed.split(','));
 };
 
 export const serializeLookingFor = (values: LookingForId[]): string =>
-  JSON.stringify(values.length ? values : (['match'] as LookingForId[]));
+  values.length ? JSON.stringify(values) : '';
 
 const personMatchesFilters = (person: MatchPerson, filters: LookingForId[]): boolean => {
   if (filters.length === 0) return true;
@@ -422,6 +421,10 @@ const MatchIt: React.FC<{
       return [];
     }
   });
+  const [filterOpen, setFilterOpen] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem(FILTER_OPEN_KEY) === '1';
+  });
   const [presenceSaving, setPresenceSaving] = useState(false);
   const [tappingPerson, setTappingPerson] = useState<MatchPerson | null>(null);
   const [showIntentGlossary, setShowIntentGlossary] = useState(false);
@@ -436,6 +439,10 @@ const MatchIt: React.FC<{
   useEffect(() => {
     window.localStorage.setItem(FILTER_KEY, JSON.stringify(intentFilters));
   }, [intentFilters]);
+
+  useEffect(() => {
+    window.localStorage.setItem(FILTER_OPEN_KEY, filterOpen ? '1' : '0');
+  }, [filterOpen]);
 
   const loadFeed = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) setIsLoading(true);
@@ -463,7 +470,7 @@ const MatchIt: React.FC<{
 
   useEffect(() => {
     setShowInMatchIt(Boolean(user.showInMatchIt));
-    if (user.matchLookingFor) setLookingFor(parseLookingFor(user.matchLookingFor));
+    setLookingFor(parseLookingFor(user.matchLookingFor));
   }, [user.showInMatchIt, user.matchLookingFor]);
 
   useEffect(() => {
@@ -509,8 +516,6 @@ const MatchIt: React.FC<{
     const next = lookingFor.includes(option)
       ? lookingFor.filter(v => v !== option)
       : [...lookingFor, option];
-    // Keep at least one intent selected
-    if (next.length === 0) return;
     setLookingFor(next);
     if (!showInMatchIt) return;
     try {
@@ -680,9 +685,25 @@ const MatchIt: React.FC<{
           </div>
           <div className="space-y-1.5">
             <div className="flex items-center justify-between gap-2">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)]">
+              <button
+                type="button"
+                onClick={() => setFilterOpen(v => !v)}
+                className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"
+                aria-expanded={filterOpen}
+                aria-controls="matchit-filter-nearby"
+              >
                 Filter nearby
-              </p>
+                {intentFilters.length > 0 && (
+                  <span className="normal-case tracking-normal font-semibold text-orange-600">
+                    ({intentFilters.length})
+                  </span>
+                )}
+                <ChevronDown
+                  size={14}
+                  className={`transition-transform ${filterOpen ? 'rotate-180' : ''}`}
+                  aria-hidden
+                />
+              </button>
               {intentFilters.length > 0 && (
                 <button
                   type="button"
@@ -693,27 +714,34 @@ const MatchIt: React.FC<{
                 </button>
               )}
             </div>
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Filter people by intent">
-              {LOOKING_FOR_OPTIONS.map(opt => {
-                const selected = intentFilters.includes(opt.id);
-                return (
-                  <button
-                    key={`filter-${opt.id}`}
-                    type="button"
-                    aria-pressed={selected}
-                    title={opt.blurb}
-                    onClick={() => handleFilterToggle(opt.id)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
-                      selected
-                        ? 'bg-[var(--text-main)] border-[var(--text-main)] text-[var(--bg-main)]'
-                        : 'bg-transparent border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--text-main)] hover:text-[var(--text-main)]'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
+            {filterOpen && (
+              <div
+                id="matchit-filter-nearby"
+                className="flex flex-wrap gap-2"
+                role="group"
+                aria-label="Filter people by intent"
+              >
+                {LOOKING_FOR_OPTIONS.map(opt => {
+                  const selected = intentFilters.includes(opt.id);
+                  return (
+                    <button
+                      key={`filter-${opt.id}`}
+                      type="button"
+                      aria-pressed={selected}
+                      title={opt.blurb}
+                      onClick={() => handleFilterToggle(opt.id)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
+                        selected
+                          ? 'bg-[var(--text-main)] border-[var(--text-main)] text-[var(--bg-main)]'
+                          : 'bg-transparent border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--text-main)] hover:text-[var(--text-main)]'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
           <div className="flex items-center justify-between gap-2">
             <p className="text-xs text-[var(--text-muted)] flex items-center gap-1 min-w-0 truncate">
