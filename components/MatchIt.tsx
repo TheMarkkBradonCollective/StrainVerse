@@ -20,9 +20,27 @@ const LOOKING_FOR_OPTIONS = [
     aliases: ['Burn it'],
   },
   {
+    id: 'sesh_later',
+    label: 'Sesh later',
+    blurb: 'Not free this second, but want to plan a smoke sesh later today.',
+    aliases: ['Sesh later today'],
+  },
+  {
+    id: 'wake_bake',
+    label: 'Wake & bake',
+    blurb: 'Morning smoke — start the day with a sesh.',
+    aliases: ['Wake and bake'],
+  },
+  {
+    id: 'nightcap',
+    label: 'Nightcap',
+    blurb: 'Evening wind-down smoke before calling it a night.',
+    aliases: ['Night cap', 'Late night sesh'],
+  },
+  {
     id: 'smoke_me_out',
     label: 'Smoke me out',
-    blurb: 'Hoping someone brings the flower and treats you to a smoke.',
+    blurb: 'Hoping someone brings the flower and treats you. Solo pick — clears every other intent.',
     aliases: [] as string[],
   },
   {
@@ -38,16 +56,40 @@ const LOOKING_FOR_OPTIONS = [
     aliases: ['Looking for people to try strain with', 'Try a strain'],
   },
   {
-    id: 'sesh_later',
-    label: 'Sesh later',
-    blurb: 'Not free this second, but want to plan a smoke sesh later today.',
-    aliases: ['Sesh later today'],
+    id: 'quick_rip',
+    label: 'Quick rip',
+    blurb: 'In and out — a short spark, not a long hang.',
+    aliases: ['Quick sesh', 'Hit and go'],
+  },
+  {
+    id: 'chill_hang',
+    label: 'Chill hang',
+    blurb: 'Hang out and smoke — no rush, kick back for a bit.',
+    aliases: ['Chill sesh', 'Hang and smoke'],
+  },
+  {
+    id: 'trade_nugs',
+    label: 'Trade nugs',
+    blurb: 'Swap flower or try each other\'s strains — trade, don\'t just take.',
+    aliases: ['Trade', 'Swap strains'],
   },
 ] as const;
 
 type LookingForId = (typeof LOOKING_FOR_OPTIONS)[number]['id'];
 
 const LOOKING_FOR_IDS = LOOKING_FOR_OPTIONS.map(o => o.id) as LookingForId[];
+const DEFAULT_LOOKING_FOR: LookingForId[] = ['match'];
+
+/**
+ * Within each group, only one intent can be on.
+ * Selecting one auto-unselects the others in that group.
+ * smoke_me_out is handled separately (exclusive with everything).
+ */
+const CONFLICT_GROUPS: readonly LookingForId[][] = [
+  ['burn_one', 'sesh_later', 'wake_bake', 'nightcap'], // when
+  ['smoke_you_out', 'smoke_me_out'], // who brings (smoke_me_out also solo-clears all)
+  ['quick_rip', 'chill_hang'], // pace
+];
 
 const lookingForLabel = (id: LookingForId): string =>
   LOOKING_FOR_OPTIONS.find(o => o.id === id)?.label ?? id;
@@ -63,13 +105,62 @@ const resolveLookingForToken = (token: string): LookingForId | null => {
   return byLabel?.id ?? null;
 };
 
+/** Drop peers that conflict with `option` in the same conflict group. */
+const withoutConflicts = (values: LookingForId[], option: LookingForId): LookingForId[] => {
+  const conflicting = new Set<LookingForId>();
+  for (const group of CONFLICT_GROUPS) {
+    if (group.includes(option)) {
+      for (const id of group) {
+        if (id !== option) conflicting.add(id);
+      }
+    }
+  }
+  return values.filter(id => !conflicting.has(id));
+};
+
+/**
+ * Selection rules so intents don't contradict:
+ * - Smoke me out is solo (can't mix with anything)
+ * - Conflict groups: only one timing / pace / treat-role at a time
+ * - Match can combine with Smoke you out, Pack & pass, Trade nugs, and one timing + one pace
+ * - Empty always falls back to Match
+ */
+export const normalizeLookingFor = (values: LookingForId[]): LookingForId[] => {
+  let unique = [...new Set(values)].filter((id): id is LookingForId => LOOKING_FOR_IDS.includes(id));
+  if (unique.includes('smoke_me_out')) {
+    if (unique.length === 1) return ['smoke_me_out'];
+    unique = unique.filter(id => id !== 'smoke_me_out');
+  }
+  // Resolve each conflict group: keep the last-occurring id in the list for that group
+  for (const group of CONFLICT_GROUPS) {
+    const present = unique.filter(id => group.includes(id));
+    if (present.length <= 1) continue;
+    const keep = present[present.length - 1];
+    unique = unique.filter(id => !group.includes(id) || id === keep);
+  }
+  return unique.length ? unique : [...DEFAULT_LOOKING_FOR];
+};
+
+export const toggleLookingForSelection = (current: LookingForId[], option: LookingForId): LookingForId[] => {
+  if (current.includes(option)) {
+    const next = current.filter(v => v !== option);
+    return next.length ? next : [...DEFAULT_LOOKING_FOR];
+  }
+  if (option === 'smoke_me_out') {
+    return ['smoke_me_out'];
+  }
+  // Selecting anything else clears exclusive Smoke me out, then drops group conflicts
+  const withoutExclusive = current.filter(v => v !== 'smoke_me_out');
+  return normalizeLookingFor([...withoutConflicts(withoutExclusive, option), option]);
+};
+
 const VIEW_MODE_KEY = 'matchit-nearby-view';
 const FILTER_KEY = 'matchit-intent-filters';
 const FILTER_OPEN_KEY = 'matchit-filter-open';
 
-/** Parse stored looking-for (JSON ids/labels or legacy single string). Empty = nothing selected. */
+/** Parse stored looking-for (JSON ids/labels or legacy single string). Defaults to Match. */
 export const parseLookingFor = (raw?: string | null): LookingForId[] => {
-  if (!raw?.trim()) return [];
+  if (!raw?.trim()) return [...DEFAULT_LOOKING_FOR];
   const trimmed = raw.trim();
   const collect = (tokens: string[]): LookingForId[] => {
     const seen = new Set<LookingForId>();
@@ -84,7 +175,7 @@ export const parseLookingFor = (raw?: string | null): LookingForId[] => {
     try {
       const parsed = JSON.parse(trimmed);
       if (Array.isArray(parsed)) {
-        return collect(parsed.filter((v): v is string => typeof v === 'string'));
+        return normalizeLookingFor(collect(parsed.filter((v): v is string => typeof v === 'string')));
       }
     } catch {
       /* fall through */
@@ -92,13 +183,13 @@ export const parseLookingFor = (raw?: string | null): LookingForId[] => {
   }
 
   const single = resolveLookingForToken(trimmed);
-  if (single) return [single];
+  if (single) return normalizeLookingFor([single]);
 
-  return collect(trimmed.split(','));
+  return normalizeLookingFor(collect(trimmed.split(',')));
 };
 
 export const serializeLookingFor = (values: LookingForId[]): string =>
-  values.length ? JSON.stringify(values) : '';
+  JSON.stringify(normalizeLookingFor(values));
 
 const personMatchesFilters = (person: MatchPerson, filters: LookingForId[]): boolean => {
   if (filters.length === 0) return true;
@@ -166,7 +257,9 @@ const IntentGlossaryModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
       </div>
       <div className="p-4 space-y-4 overflow-y-auto">
         <p className="text-sm text-[var(--text-muted)]">
-          Pick what you&apos;re down for so people nearby know the vibe. Use <span className="font-semibold text-[var(--text-main)]">Filter nearby</span> to only see people with matching intents.
+          Pick what you&apos;re down for so people nearby know the vibe. <span className="font-semibold text-[var(--text-main)]">Match</span> is the default.
+          Conflicting picks auto-unselect — e.g. only one timing (Burn one / Sesh later / Wake &amp; bake / Nightcap), only one pace (Quick rip / Chill hang),
+          and <span className="font-semibold text-[var(--text-main)]">Smoke me out</span> stands alone.
         </p>
         <ul className="space-y-3">
           {LOOKING_FOR_OPTIONS.map(opt => (
@@ -513,9 +606,7 @@ const MatchIt: React.FC<{
   };
 
   const handleLookingForToggle = async (option: LookingForId) => {
-    const next = lookingFor.includes(option)
-      ? lookingFor.filter(v => v !== option)
-      : [...lookingFor, option];
+    const next = toggleLookingForSelection(lookingFor, option);
     setLookingFor(next);
     if (!showInMatchIt) return;
     try {
