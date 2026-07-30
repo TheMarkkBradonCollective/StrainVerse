@@ -73,10 +73,23 @@
         --shadow-card: 0 8px 28px rgba(18, 38, 28, 0.06);
         --shadow-color: rgba(27, 92, 58, 0.22);
 
+        /* Floating mobile bottom nav: bottom-3 + h-[4.25rem] + safe area + breathing room */
+        --sv-bottom-clearance: calc(7.25rem + env(safe-area-inset-bottom, 0px));
+
         --gradient-main: linear-gradient(135deg, #1B5C3A 0%, #2A8F5C 45%, #7BCFA0 100%);
         --gradient-hero: radial-gradient(ellipse at 20% 0%, rgba(123, 207, 160, 0.35) 0%, transparent 55%),
                           radial-gradient(ellipse at 90% 10%, rgba(200, 230, 245, 0.45) 0%, transparent 45%),
                           radial-gradient(ellipse at 70% 90%, rgba(243, 217, 200, 0.35) 0%, transparent 50%);
+      }
+
+      /* Clear fixed bottom nav so pages can scroll fully to the end */
+      .sv-scroll-pad {
+        padding-bottom: var(--sv-bottom-clearance) !important;
+      }
+      @media (min-width: 1024px) {
+        .sv-scroll-pad {
+          padding-bottom: 1.5rem !important;
+        }
       }
 
       /* Strain profile — Concentrate mode shifts accents to gold */

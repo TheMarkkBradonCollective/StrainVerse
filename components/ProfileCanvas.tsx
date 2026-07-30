@@ -110,11 +110,11 @@ const ProfileCanvas: React.FC<ProfileCanvasProps> = ({ user, posts, isOwner, fri
   );
 
   return (
-    <div className="relative min-h-screen w-full">
+    <div className="relative w-full">
       <style dangerouslySetInnerHTML={{ __html: DEFAULT_PROFILE_CSS }} />
       {isSettingsOpen && <ProfileSettingsModal user={user} onSave={handleSaveSettings} onClose={() => setIsSettingsOpen(false)} />}
 
-      <div className="ys-profile-root p-4 md:p-8 max-w-7xl mx-auto">
+      <div className="ys-profile-root p-4 md:p-8 max-w-7xl mx-auto sv-scroll-pad">
         
         {/* Header Section */}
         <header className="ys-header mb-8 flex flex-col md:flex-row items-center md:items-end gap-6 pb-8 border-b border-[var(--border)]">

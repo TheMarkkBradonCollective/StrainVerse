@@ -103,7 +103,7 @@ const SocialSeshView: React.FC<{
     : null;
 
   return (
-    <div className="h-full flex flex-col relative pb-20 lg:pb-0 ys-group-root">
+    <div className="h-full flex flex-col relative sv-scroll-pad lg:!pb-0 ys-group-root">
       <div
         className="p-4 border-b border-[var(--border)] flex justify-between items-center ys-group-header"
         style={{

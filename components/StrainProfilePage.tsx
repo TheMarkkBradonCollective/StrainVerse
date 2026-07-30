@@ -301,7 +301,7 @@ const StrainProfilePage: React.FC<StrainProfilePageProps> = ({ strain: initialSt
 
   return (
     <div
-      className="strain-profile relative pb-24 lg:pb-8"
+      className="strain-profile relative sv-scroll-pad"
       data-form={isConcentrate ? 'concentrate' : 'flower'}
       data-type={typeKey}
     >

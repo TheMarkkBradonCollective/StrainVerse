@@ -920,7 +920,7 @@ const MatchIt: React.FC<{
       {presenceBar}
       {showInMatchIt && incomingVibesBar}
 
-      <div className="relative flex-1 min-h-0 overflow-y-auto pb-24 lg:pb-6">
+      <div className="relative flex-1 min-h-0 overflow-y-auto sv-scroll-pad">
         {!showInMatchIt ? (
           <div className="relative min-h-full overflow-hidden">
             <div
@@ -993,7 +993,7 @@ const MatchIt: React.FC<{
   const renderChats = () => {
     const myMatches = (groups || []).filter(g => g.type === 'MATCH' && g.members.includes(user.id));
     return (
-      <div className="p-4 space-y-3 pb-24 lg:pb-6 animate-in fade-in">
+      <div className="p-4 space-y-3 sv-scroll-pad animate-in fade-in">
         {myMatches.length === 0 ? (
           <div className="text-center py-20 text-[var(--text-muted)]">
             <Flame size={48} className="mx-auto mb-4 opacity-50 text-orange-400" />
