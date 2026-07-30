@@ -390,6 +390,9 @@ const SelfProfileCard: React.FC<{ user: User; onEdit: () => void }> = ({ user, o
         {user.name || 'Add your tag'}
         {age != null ? <span className="font-bold opacity-90">, {age}</span> : null}
       </h3>
+      {user.bio?.trim() && (
+        <p className="text-[11px] text-white/85 mt-0.5 line-clamp-2">{user.bio.trim()}</p>
+      )}
       {strainLabel && <p className="text-[11px] text-white/80 font-semibold mt-0.5">{strainLabel}</p>}
       <LookingForDisplay raw={user.matchLookingFor} className="mt-1" />
       <p className="mt-3 w-full bg-white/15 group-hover:bg-white/25 text-white text-sm font-bold py-2 rounded-full flex items-center justify-center gap-2 transition-colors">
@@ -442,8 +445,11 @@ const SelfProfileListRow: React.FC<{ user: User; onEdit: () => void }> = ({ user
       {strainLabel && (
         <p className="text-[11px] font-semibold text-[var(--text-secondary)] mt-0.5">{strainLabel}</p>
       )}
+      {user.bio?.trim() && (
+        <p className="text-[11px] text-[var(--text-muted)] mt-0.5 line-clamp-2">{user.bio.trim()}</p>
+      )}
       <LookingForDisplay raw={user.matchLookingFor} className="mt-1 text-orange-600" compact />
-      <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Tap to edit photo, tag, age &amp; style</p>
+      <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Tap to edit photo, tag, age, bio &amp; style</p>
     </div>
     <span className="flex-shrink-0 w-10 h-10 rounded-full bg-orange-500 text-white flex items-center justify-center">
       <UserRound size={18} />
@@ -497,6 +503,9 @@ const PersonCard: React.FC<{
           {person.name}
           {person.age != null ? <span className="font-bold opacity-90">, {person.age}</span> : null}
         </h3>
+        {person.bio?.trim() && (
+          <p className="text-[11px] text-white/85 mt-0.5 line-clamp-2">{person.bio.trim()}</p>
+        )}
         {strainPrefLabel(person.matchStrainPrefs) && (
           <p className="text-[11px] text-white/80 font-semibold mt-0.5">
             {strainPrefLabel(person.matchStrainPrefs)}
@@ -551,6 +560,9 @@ const PersonListRow: React.FC<{
           <p className="text-[11px] font-semibold text-[var(--text-secondary)] mt-0.5">
             {strainPrefLabel(person.matchStrainPrefs)}
           </p>
+        )}
+        {person.bio?.trim() && (
+          <p className="text-[11px] text-[var(--text-muted)] mt-0.5 line-clamp-2">{person.bio.trim()}</p>
         )}
         <LookingForDisplay raw={person.matchLookingFor} className="mt-1 text-orange-600" compact />
         {person.smokingStyle && (
