@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { User, Group, ReportCategory, MatchItInteraction, MatchPerson } from '../types';
-import { Flame, MapPin, AlertTriangle, ShieldOff, Flag, XCircle, Loader2, MessageSquare, Sparkles, MessageCircle, Leaf, LayoutGrid, List } from 'lucide-react';
+import { User, Group, ReportCategory, MatchItInteraction, MatchPerson, MatchItLocationShare } from '../types';
+import { Flame, MapPin, AlertTriangle, ShieldOff, Flag, XCircle, Loader2, MessageSquare, Sparkles, MessageCircle, Leaf, LayoutGrid, List, Map } from 'lucide-react';
 import VibeTapModal from './VibeTapModal';
+import MatchItPeopleMap, { sharesToMapPins, MapPin as MatchMapPin } from './MatchItPeopleMap';
 import { api } from '../services/supabaseClient';
 
 const LOOKING_FOR_OPTIONS = [
@@ -235,11 +236,14 @@ const MatchIt: React.FC<{
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'FIND' | 'CHATS'>('FIND');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>(() => {
     if (typeof window === 'undefined') return 'grid';
     const saved = window.localStorage.getItem(VIEW_MODE_KEY);
-    return saved === 'list' ? 'list' : 'grid';
+    if (saved === 'list' || saved === 'map') return saved;
+    return 'grid';
   });
+  const [locationShares, setLocationShares] = useState<MatchItLocationShare[]>([]);
+  const [selectedMapPin, setSelectedMapPin] = useState<MatchMapPin | null>(null);
   const [showInMatchIt, setShowInMatchIt] = useState(Boolean(user.showInMatchIt));
   const [lookingFor, setLookingFor] = useState(user.matchLookingFor || LOOKING_FOR_OPTIONS[0]);
   const [presenceSaving, setPresenceSaving] = useState(false);
@@ -256,12 +260,14 @@ const MatchIt: React.FC<{
     if (!opts?.silent) setIsLoading(true);
     setLoadError(null);
     try {
-      const [nearby, vibes] = await Promise.all([
+      const [nearby, vibes, shares] = await Promise.all([
         api.getMatchItPeople(user),
         api.getMatchItInteractionsForUser(user.id),
+        api.getMatchItLocationShares(user.id),
       ]);
       setPeople(nearby);
       setInteractions(vibes);
+      setLocationShares(shares);
     } catch (e: any) {
       console.error('MatchIt feed failed:', e);
       setLoadError(e?.message || 'Could not load people nearby. Try again.');
@@ -479,6 +485,17 @@ const MatchIt: React.FC<{
               >
                 <List size={14} /> List
               </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('map')}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                  viewMode === 'map' ? 'bg-orange-500 text-white' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                }`}
+                aria-pressed={viewMode === 'map'}
+                title="Map — only shared locations"
+              >
+                <Map size={14} /> Map
+              </button>
             </div>
           </div>
         </>
@@ -508,7 +525,58 @@ const MatchIt: React.FC<{
       </div>
     ) : null;
 
+  const userCoords =
+    user.latitude != null && user.longitude != null
+      ? { lat: user.latitude, lng: user.longitude }
+      : null;
+
+  const mapPins: MatchMapPin[] = (() => {
+    const fromShares = sharesToMapPins(locationShares.filter((s) => !s.isSelf));
+    if (userCoords) {
+      fromShares.unshift({
+        id: `self-${user.id}`,
+        name: user.name || 'You',
+        avatar: user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`,
+        latitude: userCoords.lat,
+        longitude: userCoords.lng,
+        isSelf: true,
+      });
+    }
+    return fromShares;
+  })();
+
   const renderPeople = () => {
+    if (viewMode === 'map') {
+      return (
+        <div className="relative h-[min(70vh,560px)] min-h-[320px] mx-3 mb-4 rounded-[1.5rem] overflow-hidden border border-[var(--border)]">
+          <MatchItPeopleMap
+            pins={mapPins}
+            userCoords={userCoords}
+            onSelectPin={setSelectedMapPin}
+            selectedPinId={selectedMapPin?.id}
+            fullScreen
+            emptyHint="Only you until someone shares location in a Match chat"
+          />
+          {selectedMapPin && !selectedMapPin.isSelf && (
+            <div className="absolute bottom-14 left-3 right-3 z-30 bg-[var(--bg-card)]/95 border border-[var(--border)] rounded-2xl p-3 shadow-[var(--shadow-soft)] flex items-center gap-3">
+              <img src={selectedMapPin.avatar} alt="" className="w-12 h-12 rounded-full object-cover" />
+              <div className="flex-1 min-w-0">
+                <p className="font-bold truncate">{selectedMapPin.name}</p>
+                <p className="text-xs text-[var(--text-muted)]">
+                  {selectedMapPin.expiresAt
+                    ? `Sharing until ${new Date(selectedMapPin.expiresAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
+                    : 'Sharing · Always on'}
+                </p>
+              </div>
+              <button type="button" onClick={() => setSelectedMapPin(null)} className="text-xs text-[var(--text-muted)]">
+                Close
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    }
+
     if (people.length === 0) {
       return (
         <div className="text-center py-16 text-[var(--text-muted)] px-6">

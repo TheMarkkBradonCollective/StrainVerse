@@ -1,5 +1,5 @@
 import { createClient, type User as AuthUser } from '@supabase/supabase-js';
-import { User, Post, Group, ChatMessage, PostVisibility, ReactionType, SafetyReport, GrowPlant, Story, GameScore, Strain, StrainPhoto, StrainReview, StrainChatMessage, PostComment, ReportCategory, MatchItInteraction, MatchPerson } from '../types';
+import { User, Post, Group, ChatMessage, PostVisibility, ReactionType, SafetyReport, GrowPlant, Story, GameScore, Strain, StrainPhoto, StrainReview, StrainChatMessage, PostComment, ReportCategory, MatchItInteraction, MatchPerson, MatchItLocationShare } from '../types';
 
 const sanitizeHandle = (raw: string): string => {
   const cleaned = raw.toLowerCase().replace(/^@/, '').replace(/[^a-z0-9_]/g, '');
@@ -975,6 +975,141 @@ export const api = {
         sender_name: i.sender?.name,
         sender_avatar: i.sender?.avatar,
       })) as MatchItInteraction[];
+  },
+
+  /** Active location shares visible to this user (MATCH chats they belong to). */
+  getMatchItLocationShares: async (userId: string): Promise<MatchItLocationShare[]> => {
+    const { data: groups, error: groupsError } = await strainVerse()
+      .from('groups')
+      .select('id')
+      .eq('type', 'MATCH')
+      .contains('members', [userId]);
+
+    if (groupsError) {
+      console.error('Error loading match groups for location shares:', groupsError);
+      return [];
+    }
+    const groupIds = (groups || []).map((g: { id: string }) => g.id);
+    if (groupIds.length === 0) return [];
+
+    const { data, error } = await strainVerse()
+      .from('matchit_location_shares')
+      .select('*, profiles!user_id(name, avatar)')
+      .in('group_id', groupIds)
+      .or('expires_at.is.null,expires_at.gt.' + new Date().toISOString());
+
+    if (error) {
+      console.error('Error fetching MatchIt location shares:', error);
+      return [];
+    }
+
+    return (data || []).map((row: any) => ({
+      id: row.id,
+      userId: row.user_id,
+      userName: row.profiles?.name || 'User',
+      userAvatar: row.profiles?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${row.user_id}`,
+      groupId: row.group_id,
+      latitude: row.latitude,
+      longitude: row.longitude,
+      expiresAt: row.expires_at,
+      createdAt: row.created_at,
+      isSelf: row.user_id === userId,
+    })) as MatchItLocationShare[];
+  },
+
+  getMyLocationShareForGroup: async (userId: string, groupId: string): Promise<MatchItLocationShare | null> => {
+    const { data, error } = await strainVerse()
+      .from('matchit_location_shares')
+      .select('*, profiles!user_id(name, avatar)')
+      .eq('user_id', userId)
+      .eq('group_id', groupId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error fetching own location share:', error);
+      return null;
+    }
+    if (!data) return null;
+    if (data.expires_at && new Date(data.expires_at).getTime() <= Date.now()) return null;
+
+    return {
+      id: data.id,
+      userId: data.user_id,
+      userName: data.profiles?.name || 'You',
+      userAvatar: data.profiles?.avatar || '',
+      groupId: data.group_id,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      expiresAt: data.expires_at,
+      createdAt: data.created_at,
+      isSelf: true,
+    };
+  },
+
+  /**
+   * Share live location in a MATCH chat.
+   * @param durationMinutes null = always on until stopped
+   */
+  shareMatchItLocation: async (
+    userId: string,
+    groupId: string,
+    latitude: number,
+    longitude: number,
+    durationMinutes: number | null
+  ): Promise<MatchItLocationShare> => {
+    const expiresAt =
+      durationMinutes == null
+        ? null
+        : new Date(Date.now() + durationMinutes * 60 * 1000).toISOString();
+
+    const { data, error } = await strainVerse()
+      .from('matchit_location_shares')
+      .upsert(
+        {
+          user_id: userId,
+          group_id: groupId,
+          latitude,
+          longitude,
+          expires_at: expiresAt,
+          created_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id,group_id' }
+      )
+      .select('*, profiles!user_id(name, avatar)')
+      .single();
+
+    if (error) {
+      console.error('Error sharing MatchIt location:', error);
+      throw error;
+    }
+
+    // Keep profile coords in sync for distance sorting elsewhere
+    await api.updateUserLocation(userId, latitude, longitude, 25).catch(() => undefined);
+
+    return {
+      id: data.id,
+      userId: data.user_id,
+      userName: data.profiles?.name || 'You',
+      userAvatar: data.profiles?.avatar || '',
+      groupId: data.group_id,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      expiresAt: data.expires_at,
+      createdAt: data.created_at,
+      isSelf: true,
+    };
+  },
+
+  stopMatchItLocationShare: async (userId: string, groupId: string): Promise<void> => {
+    const { error } = await strainVerse()
+      .from('matchit_location_shares')
+      .delete()
+      .eq('user_id', userId)
+      .eq('group_id', groupId);
+    if (error) {
+      console.error('Error stopping MatchIt location share:', error);
+      throw error;
+    }
   },
 
   // --- StrainVerse Specific API calls ---
