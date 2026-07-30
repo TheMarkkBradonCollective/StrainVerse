@@ -351,64 +351,73 @@ const MatchIt: React.FC<{
           <p className={`text-sm font-extrabold ${showInMatchIt ? 'text-orange-600' : 'text-[var(--text-main)]'}`}>
             Looking to smoke
           </p>
-          <p className="text-xs text-[var(--text-muted)] truncate">
-            {showInMatchIt ? 'You appear nearby' : 'Turn on to show up near you'}
+          <p className="text-xs text-[var(--text-muted)]">
+            {showInMatchIt
+              ? 'You\'re visible nearby — and can see who else is on'
+              : 'Off = invisible. Turn on to appear and see people nearby'}
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <div className="flex rounded-xl border border-[var(--border)] bg-[var(--bg-main)] p-0.5">
-            <button
-              type="button"
-              onClick={() => setViewMode('map')}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                viewMode === 'map' ? 'bg-orange-500 text-white' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
-              }`}
-              aria-pressed={viewMode === 'map'}
-            >
-              <Map size={14} /> Map
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('list')}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                viewMode === 'list' ? 'bg-orange-500 text-white' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
-              }`}
-              aria-pressed={viewMode === 'list'}
-            >
-              <List size={14} /> List
-            </button>
-          </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={showInMatchIt}
-            aria-label="Looking to smoke"
-            disabled={presenceSaving}
-            onClick={handleTogglePresence}
-            className={`relative inline-flex items-center h-8 w-14 rounded-full transition-colors flex-shrink-0 ${
-              showInMatchIt ? 'bg-orange-500' : 'bg-[var(--border-strong)]'
+        <button
+          type="button"
+          role="switch"
+          aria-checked={showInMatchIt}
+          aria-label="Looking to smoke"
+          disabled={presenceSaving}
+          onClick={handleTogglePresence}
+          className={`relative inline-flex items-center h-9 w-16 rounded-full transition-colors flex-shrink-0 border ${
+            showInMatchIt
+              ? 'bg-orange-500 border-orange-500'
+              : 'bg-[var(--border-strong)] border-[var(--border)]'
+          } ${presenceSaving ? 'opacity-60' : ''}`}
+        >
+          <span
+            className={`inline-block h-7 w-7 rounded-full bg-white shadow transition-transform ${
+              showInMatchIt ? 'translate-x-8' : 'translate-x-1'
             }`}
-          >
-            <span className={`inline-block h-6 w-6 rounded-full bg-white shadow transition-transform ${showInMatchIt ? 'translate-x-7' : 'translate-x-1'}`} />
-          </button>
-        </div>
+          />
+        </button>
       </div>
 
       {showInMatchIt && (
-        <select
-          value={lookingFor}
-          onChange={e => handleLookingForChange(e.target.value)}
-          className="w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-xl p-2.5 text-sm focus:outline-none focus:border-orange-400"
-        >
-          {LOOKING_FOR_OPTIONS.map(opt => (
-            <option key={opt} value={opt}>{opt}</option>
-          ))}
-        </select>
+        <>
+          <select
+            value={lookingFor}
+            onChange={e => handleLookingForChange(e.target.value)}
+            className="w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-xl p-2.5 text-sm focus:outline-none focus:border-orange-400"
+          >
+            {LOOKING_FOR_OPTIONS.map(opt => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs text-[var(--text-muted)] flex items-center gap-1 min-w-0 truncate">
+              <MapPin size={12} /> People near {user.city}, {user.state}
+            </p>
+            <div className="flex rounded-xl border border-[var(--border)] bg-[var(--bg-main)] p-0.5 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setViewMode('map')}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                  viewMode === 'map' ? 'bg-orange-500 text-white' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                }`}
+                aria-pressed={viewMode === 'map'}
+              >
+                <Map size={14} /> Map
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('list')}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                  viewMode === 'list' ? 'bg-orange-500 text-white' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                }`}
+                aria-pressed={viewMode === 'list'}
+              >
+                <List size={14} /> List
+              </button>
+            </div>
+          </div>
+        </>
       )}
-
-      <p className="text-xs text-[var(--text-muted)] flex items-center gap-1">
-        <MapPin size={12} /> People near {user.city}, {user.state}
-      </p>
     </div>
   );
 
@@ -489,10 +498,54 @@ const MatchIt: React.FC<{
       )}
 
       {presenceBar}
-      {incomingVibesBar}
+      {showInMatchIt && incomingVibesBar}
 
       <div className="relative flex-1 min-h-0">
-        {loadError && (
+        {!showInMatchIt ? (
+          <div className="absolute inset-0 overflow-hidden">
+            {/* Blurred ghost grid — no real profiles while invisible */}
+            <div
+              className="grid grid-cols-2 gap-3 p-4 pb-28 pointer-events-none select-none"
+              aria-hidden="true"
+              style={{ filter: 'blur(14px)', transform: 'scale(1.04)' }}
+            >
+              {[0, 1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="aspect-[3/4] rounded-[1.5rem] bg-gradient-to-b from-[var(--bg-input)] to-[var(--border)] border border-[var(--border)] overflow-hidden relative"
+                >
+                  <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_50%_35%,#fff_0%,transparent_55%)]" />
+                  <div className="absolute bottom-3 left-3 right-3 space-y-2">
+                    <div className="h-3 w-2/3 rounded-full bg-white/50" />
+                    <div className="h-2 w-1/2 rounded-full bg-white/35" />
+                    <div className="h-8 w-full rounded-full bg-orange-400/40" />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="absolute inset-0 z-20 flex items-center justify-center p-6 bg-[var(--bg-main)]/55 backdrop-blur-[2px]">
+              <div className="w-full max-w-sm text-center bg-[var(--bg-card)]/95 border border-[var(--border)] rounded-[1.5rem] shadow-[var(--shadow-soft)] p-6">
+                <Flame size={36} className="mx-auto mb-3 text-orange-500" />
+                <h3 className="text-lg font-extrabold text-[var(--text-main)]">You're invisible</h3>
+                <p className="text-sm text-[var(--text-muted)] mt-2 leading-relaxed">
+                  Nearby is blanked out while Looking to smoke is off — turn it on to appear for others and see who's looking.
+                </p>
+                <button
+                  type="button"
+                  disabled={presenceSaving}
+                  onClick={handleTogglePresence}
+                  className="mt-5 w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-bold py-3 rounded-full flex items-center justify-center gap-2"
+                >
+                  {presenceSaving ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                  Turn on Looking to smoke
+                </button>
+                <p className="text-[11px] text-[var(--text-muted)] mt-3">
+                  Your Matches chats stay available anytime.
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : loadError ? (
           <div className="absolute top-3 left-3 right-3 z-30 bg-[var(--bg-card)] border border-red-300 text-red-700 rounded-2xl p-3 text-sm shadow-[var(--shadow-card)] flex items-start justify-between gap-3">
             <p className="min-w-0">{loadError}</p>
             <button
@@ -503,13 +556,14 @@ const MatchIt: React.FC<{
               Retry
             </button>
           </div>
-        )}
-        {isLoading ? (
+        ) : null}
+
+        {showInMatchIt && isLoading ? (
           <div className="flex flex-col items-center justify-center h-full gap-3 p-4">
             <Loader2 size={32} className="animate-spin text-orange-500" />
             <p className="text-sm text-[var(--text-muted)]">Finding people nearby…</p>
           </div>
-        ) : viewMode === 'map' ? (
+        ) : showInMatchIt && viewMode === 'map' ? (
           <div className="absolute inset-0">
             <MatchItPeopleMap
               people={people}
@@ -534,7 +588,7 @@ const MatchIt: React.FC<{
             )}
             {mapPersonSheet}
           </div>
-        ) : (
+        ) : showInMatchIt ? (
           <div className="h-full overflow-y-auto pb-24 lg:pb-6">
             {people.length > 0 ? (
               <div className="grid grid-cols-2 gap-3 p-4">
@@ -554,14 +608,12 @@ const MatchIt: React.FC<{
                 <Flame size={40} className="mx-auto mb-3 text-orange-400/50" />
                 <p className="font-bold text-lg text-[var(--text-main)]">Nobody nearby yet</p>
                 <p className="text-sm mt-1">
-                  {showInMatchIt
-                    ? 'Stay visible — when others nearby turn on Looking to smoke, they\'ll show up here.'
-                    : 'Flip Looking to smoke on so people near you can find you.'}
+                  Stay visible — when others nearby turn on Looking to smoke, they'll show up here.
                 </p>
               </div>
             )}
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );
