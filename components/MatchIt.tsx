@@ -22,7 +22,7 @@ const LOOKING_FOR_OPTIONS = [
   {
     id: 'smoke_me_out',
     label: 'Smoke me out',
-    blurb: 'Hoping someone brings the flower and treats you to a smoke.',
+    blurb: 'Hoping someone brings the flower and treats you. Solo pick — can\'t mix with Match, Smoke you out, or other intents.',
     aliases: [] as string[],
   },
   {
@@ -48,6 +48,7 @@ const LOOKING_FOR_OPTIONS = [
 type LookingForId = (typeof LOOKING_FOR_OPTIONS)[number]['id'];
 
 const LOOKING_FOR_IDS = LOOKING_FOR_OPTIONS.map(o => o.id) as LookingForId[];
+const DEFAULT_LOOKING_FOR: LookingForId[] = ['match'];
 
 const lookingForLabel = (id: LookingForId): string =>
   LOOKING_FOR_OPTIONS.find(o => o.id === id)?.label ?? id;
@@ -63,13 +64,43 @@ const resolveLookingForToken = (token: string): LookingForId | null => {
   return byLabel?.id ?? null;
 };
 
+/**
+ * Selection rules so intents don't contradict:
+ * - Smoke me out is solo (can't mix with anything)
+ * - Match can combine with Smoke you out, Pack & pass, Burn one, Sesh later
+ * - Empty always falls back to Match
+ */
+export const normalizeLookingFor = (values: LookingForId[]): LookingForId[] => {
+  const unique = [...new Set(values)].filter((id): id is LookingForId => LOOKING_FOR_IDS.includes(id));
+  if (unique.includes('smoke_me_out')) {
+    if (unique.length === 1) return ['smoke_me_out'];
+    // Stored contradiction: drop Smoke me out, keep the rest
+    const rest = unique.filter(id => id !== 'smoke_me_out');
+    return rest.length ? rest : [...DEFAULT_LOOKING_FOR];
+  }
+  return unique.length ? unique : [...DEFAULT_LOOKING_FOR];
+};
+
+export const toggleLookingForSelection = (current: LookingForId[], option: LookingForId): LookingForId[] => {
+  if (current.includes(option)) {
+    const next = current.filter(v => v !== option);
+    return next.length ? next : [...DEFAULT_LOOKING_FOR];
+  }
+  if (option === 'smoke_me_out') {
+    return ['smoke_me_out'];
+  }
+  // Selecting anything else clears exclusive Smoke me out
+  const withoutExclusive = current.filter(v => v !== 'smoke_me_out');
+  return normalizeLookingFor([...withoutExclusive, option]);
+};
+
 const VIEW_MODE_KEY = 'matchit-nearby-view';
 const FILTER_KEY = 'matchit-intent-filters';
 const FILTER_OPEN_KEY = 'matchit-filter-open';
 
-/** Parse stored looking-for (JSON ids/labels or legacy single string). Empty = nothing selected. */
+/** Parse stored looking-for (JSON ids/labels or legacy single string). Defaults to Match. */
 export const parseLookingFor = (raw?: string | null): LookingForId[] => {
-  if (!raw?.trim()) return [];
+  if (!raw?.trim()) return [...DEFAULT_LOOKING_FOR];
   const trimmed = raw.trim();
   const collect = (tokens: string[]): LookingForId[] => {
     const seen = new Set<LookingForId>();
@@ -84,7 +115,7 @@ export const parseLookingFor = (raw?: string | null): LookingForId[] => {
     try {
       const parsed = JSON.parse(trimmed);
       if (Array.isArray(parsed)) {
-        return collect(parsed.filter((v): v is string => typeof v === 'string'));
+        return normalizeLookingFor(collect(parsed.filter((v): v is string => typeof v === 'string')));
       }
     } catch {
       /* fall through */
@@ -92,13 +123,13 @@ export const parseLookingFor = (raw?: string | null): LookingForId[] => {
   }
 
   const single = resolveLookingForToken(trimmed);
-  if (single) return [single];
+  if (single) return normalizeLookingFor([single]);
 
-  return collect(trimmed.split(','));
+  return normalizeLookingFor(collect(trimmed.split(',')));
 };
 
 export const serializeLookingFor = (values: LookingForId[]): string =>
-  values.length ? JSON.stringify(values) : '';
+  JSON.stringify(normalizeLookingFor(values));
 
 const personMatchesFilters = (person: MatchPerson, filters: LookingForId[]): boolean => {
   if (filters.length === 0) return true;
@@ -166,7 +197,9 @@ const IntentGlossaryModal: React.FC<{ onClose: () => void }> = ({ onClose }) => 
       </div>
       <div className="p-4 space-y-4 overflow-y-auto">
         <p className="text-sm text-[var(--text-muted)]">
-          Pick what you&apos;re down for so people nearby know the vibe. Use <span className="font-semibold text-[var(--text-main)]">Filter nearby</span> to only see people with matching intents.
+          Pick what you&apos;re down for so people nearby know the vibe. <span className="font-semibold text-[var(--text-main)]">Match</span> is the default.
+          <span className="font-semibold text-[var(--text-main)]"> Smoke me out</span> stands alone — it can&apos;t mix with other intents.
+          Match can pair with Smoke you out, Pack &amp; pass, and the timing pills.
         </p>
         <ul className="space-y-3">
           {LOOKING_FOR_OPTIONS.map(opt => (
@@ -513,9 +546,7 @@ const MatchIt: React.FC<{
   };
 
   const handleLookingForToggle = async (option: LookingForId) => {
-    const next = lookingFor.includes(option)
-      ? lookingFor.filter(v => v !== option)
-      : [...lookingFor, option];
+    const next = toggleLookingForSelection(lookingFor, option);
     setLookingFor(next);
     if (!showInMatchIt) return;
     try {
