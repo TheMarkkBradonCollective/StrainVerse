@@ -577,7 +577,6 @@ const App: React.FC = () => {
         if (activeGroup) setActiveGroup(null);
     }
 
-    const isMatchItMapShell = currentView === AppView.MATCHIT && !activeGroup && !selectedStrain;
     const showBrandedHeader =
         currentView === AppView.STRAINVERSE && !selectedStrain && !activeGroup;
 
@@ -594,15 +593,13 @@ const App: React.FC = () => {
                     userAge={userAge}
                 />
                 <main className="flex-1 min-w-0 flex flex-col h-[100dvh] max-h-[100dvh]">
-                    {!isMatchItMapShell && (
-                      <Header
+                    <Header
                         title={getHeaderTitle()}
                         onBack={showBackButton ? handleBack : undefined}
                         currentView={currentView}
                         branded={showBrandedHeader}
-                      />
-                    )}
-                    <div className={`flex-1 min-h-0 ${isMatchItMapShell ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+                    />
+                    <div className="flex-1 min-h-0 overflow-y-auto">
                         {renderCurrentView()}
                     </div>
                 </main>

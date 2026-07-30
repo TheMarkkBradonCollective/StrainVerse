@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { User, Group, ReportCategory, MatchItInteraction, MatchPerson } from '../types';
-import { Flame, MapPin, AlertTriangle, ShieldOff, Flag, XCircle, Loader2, MessageSquare, Sparkles, MessageCircle, Leaf, Map, List } from 'lucide-react';
+import { Flame, MapPin, AlertTriangle, ShieldOff, Flag, XCircle, Loader2, MessageSquare, Sparkles, MessageCircle, Leaf, LayoutGrid, List } from 'lucide-react';
 import VibeTapModal from './VibeTapModal';
-import MatchItPeopleMap from './MatchItPeopleMap';
 import { api } from '../services/supabaseClient';
 
 const LOOKING_FOR_OPTIONS = [
@@ -11,6 +10,15 @@ const LOOKING_FOR_OPTIONS = [
   'Looking for new friends',
   'Looking for people to try strain with',
 ];
+
+const VIEW_MODE_KEY = 'matchit-nearby-view';
+
+const distanceLabel = (person: MatchPerson) =>
+  person.distance != null
+    ? person.distance < 1
+      ? `${Math.round(person.distance * 1000)}m`
+      : `${person.distance.toFixed(1)} km`
+    : person.city || 'Nearby';
 
 const ReportModal: React.FC<{
   person: MatchPerson;
@@ -81,6 +89,7 @@ const MatchSuccessModal: React.FC<{
   </div>
 );
 
+/** Grindr-style photo tile — vibe first, no open chat until matched */
 const PersonCard: React.FC<{
   person: MatchPerson;
   alreadySent: boolean;
@@ -89,12 +98,6 @@ const PersonCard: React.FC<{
   onBlock: () => void;
 }> = ({ person, alreadySent, onVibe, onReport, onBlock }) => {
   const [menuOpen, setMenuOpen] = useState(false);
-  const distanceLabel =
-    person.distance != null
-      ? person.distance < 1
-        ? `${Math.round(person.distance * 1000)}m`
-        : `${person.distance.toFixed(1)} km`
-      : person.city || 'Nearby';
 
   return (
     <div className="relative aspect-[3/4] rounded-[1.5rem] overflow-hidden bg-[var(--bg-card)] border border-[var(--border)] shadow-[var(--shadow-card)] group">
@@ -103,7 +106,7 @@ const PersonCard: React.FC<{
 
       <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
         <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-black/50 text-white px-2.5 py-1 rounded-full backdrop-blur-sm">
-          <MapPin size={12} /> {distanceLabel}
+          <MapPin size={12} /> {distanceLabel(person)}
         </span>
         <div className="relative">
           <button
@@ -151,6 +154,72 @@ const PersonCard: React.FC<{
   );
 };
 
+const PersonListRow: React.FC<{
+  person: MatchPerson;
+  alreadySent: boolean;
+  onVibe: () => void;
+  onReport: () => void;
+  onBlock: () => void;
+}> = ({ person, alreadySent, onVibe, onReport, onBlock }) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  return (
+    <div className="flex items-center gap-3 p-3 bg-[var(--bg-card)] border border-[var(--border)] rounded-[1.35rem] shadow-[var(--shadow-card)]">
+      <img
+        src={person.avatar}
+        alt={person.name}
+        className="w-16 h-16 rounded-2xl object-cover flex-shrink-0 border border-[var(--border)]"
+      />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <h3 className="font-extrabold text-[var(--text-main)] truncate">{person.name}</h3>
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[var(--text-muted)]">
+            <MapPin size={11} /> {distanceLabel(person)}
+          </span>
+        </div>
+        {person.matchLookingFor && (
+          <p className="text-xs text-orange-600 font-semibold mt-0.5 truncate flex items-center gap-1">
+            <Flame size={12} /> {person.matchLookingFor}
+          </p>
+        )}
+        {person.smokingStyle && (
+          <p className="text-[11px] text-[var(--text-muted)] mt-0.5 flex items-center gap-1 truncate">
+            <Leaf size={11} /> Prefers {person.smokingStyle}
+          </p>
+        )}
+      </div>
+      <div className="flex flex-col items-end gap-2 flex-shrink-0 relative">
+        <button
+          type="button"
+          onClick={() => setMenuOpen(v => !v)}
+          className="w-8 h-8 rounded-full text-[var(--text-muted)] hover:bg-[var(--bg-hover)] flex items-center justify-center"
+          aria-label="More options"
+        >
+          ···
+        </button>
+        {menuOpen && (
+          <div className="absolute right-0 top-9 w-36 bg-[var(--bg-card)] border border-[var(--border)] rounded-xl shadow-lg z-10 overflow-hidden">
+            <button onClick={() => { onReport(); setMenuOpen(false); }} className="w-full text-left flex items-center gap-2 px-3 py-2 text-sm hover:bg-[var(--bg-hover)] text-red-500">
+              <Flag size={14} /> Report
+            </button>
+            <button onClick={() => { onBlock(); setMenuOpen(false); }} className="w-full text-left flex items-center gap-2 px-3 py-2 text-sm hover:bg-[var(--bg-hover)]">
+              <ShieldOff size={14} /> Block
+            </button>
+          </div>
+        )}
+        <button
+          onClick={onVibe}
+          disabled={alreadySent}
+          className="px-3 py-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white text-xs font-bold rounded-full flex items-center gap-1.5"
+        >
+          <MessageSquare size={13} />
+          {alreadySent ? 'Sent' : 'Vibe'}
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const MatchIt: React.FC<{
   user: User;
   userAge: number | null;
@@ -166,8 +235,11 @@ const MatchIt: React.FC<{
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'FIND' | 'CHATS'>('FIND');
-  const [viewMode, setViewMode] = useState<'map' | 'list'>('list');
-  const [selectedMapPerson, setSelectedMapPerson] = useState<MatchPerson | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+    if (typeof window === 'undefined') return 'grid';
+    const saved = window.localStorage.getItem(VIEW_MODE_KEY);
+    return saved === 'list' ? 'list' : 'grid';
+  });
   const [showInMatchIt, setShowInMatchIt] = useState(Boolean(user.showInMatchIt));
   const [lookingFor, setLookingFor] = useState(user.matchLookingFor || LOOKING_FOR_OPTIONS[0]);
   const [presenceSaving, setPresenceSaving] = useState(false);
@@ -175,6 +247,10 @@ const MatchIt: React.FC<{
   const [reportingPerson, setReportingPerson] = useState<MatchPerson | null>(null);
   const [matchSuccessInfo, setMatchSuccessInfo] = useState<{ group: Group; otherUser: { name: string; avatar: string } } | null>(null);
   const [interactions, setInteractions] = useState<MatchItInteraction[]>([]);
+
+  useEffect(() => {
+    window.localStorage.setItem(VIEW_MODE_KEY, viewMode);
+  }, [viewMode]);
 
   const loadFeed = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) setIsLoading(true);
@@ -186,13 +262,6 @@ const MatchIt: React.FC<{
       ]);
       setPeople(nearby);
       setInteractions(vibes);
-      // Prefer list when nobody has map coords yet so people still show up
-      const mappable = nearby.some(
-        (p) => typeof p.latitude === 'number' && typeof p.longitude === 'number'
-      );
-      if (nearby.length > 0 && !mappable) {
-        setViewMode((mode) => (mode === 'map' ? 'list' : mode));
-      }
     } catch (e: any) {
       console.error('MatchIt feed failed:', e);
       setLoadError(e?.message || 'Could not load people nearby. Try again.');
@@ -218,7 +287,6 @@ const MatchIt: React.FC<{
     }
   }, [userAge, user.city, user.state, loadFeed]);
 
-  // Auto-refresh nearby people while MatchIt is open
   useEffect(() => {
     if (!(userAge !== null && userAge >= 21 && user.city && user.state)) return;
     const soft = () => {
@@ -339,11 +407,6 @@ const MatchIt: React.FC<{
     );
   }
 
-  const userCoords =
-    user.latitude != null && user.longitude != null
-      ? { lat: user.latitude, lng: user.longitude }
-      : null;
-
   const presenceBar = (
     <div className="flex-shrink-0 p-3 sm:p-4 border-b border-[var(--border)] bg-[var(--bg-card)]/95 backdrop-blur-sm space-y-3 z-10">
       <div className="flex items-center justify-between gap-3">
@@ -353,7 +416,7 @@ const MatchIt: React.FC<{
           </p>
           <p className="text-xs text-[var(--text-muted)]">
             {showInMatchIt
-              ? 'You\'re visible nearby — and can see who else is on'
+              ? "You're visible nearby — send a vibe to talk first"
               : 'Off = invisible. Turn on to appear and see people nearby'}
           </p>
         </div>
@@ -396,13 +459,14 @@ const MatchIt: React.FC<{
             <div className="flex rounded-xl border border-[var(--border)] bg-[var(--bg-main)] p-0.5 flex-shrink-0">
               <button
                 type="button"
-                onClick={() => setViewMode('map')}
+                onClick={() => setViewMode('grid')}
                 className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                  viewMode === 'map' ? 'bg-orange-500 text-white' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                  viewMode === 'grid' ? 'bg-orange-500 text-white' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                 }`}
-                aria-pressed={viewMode === 'map'}
+                aria-pressed={viewMode === 'grid'}
+                title="Grid view"
               >
-                <Map size={14} /> Map
+                <LayoutGrid size={14} /> Grid
               </button>
               <button
                 type="button"
@@ -411,6 +475,7 @@ const MatchIt: React.FC<{
                   viewMode === 'list' ? 'bg-orange-500 text-white' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                 }`}
                 aria-pressed={viewMode === 'list'}
+                title="List view"
               >
                 <List size={14} /> List
               </button>
@@ -443,43 +508,51 @@ const MatchIt: React.FC<{
       </div>
     ) : null;
 
-  const mapPersonSheet = selectedMapPerson ? (
-    <div className="absolute bottom-0 left-0 right-0 z-30 p-3 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] lg:pb-4 pointer-events-none">
-      <div className="pointer-events-auto max-w-lg mx-auto bg-[var(--bg-card)] border border-[var(--border)] rounded-[1.5rem] shadow-[var(--shadow-soft)] p-4 flex items-center gap-3">
-        <img src={selectedMapPerson.avatar} alt="" className="w-14 h-14 rounded-full object-cover border-2 border-orange-400" />
-        <div className="flex-1 min-w-0">
-          <h3 className="font-extrabold truncate">{selectedMapPerson.name}</h3>
-          {selectedMapPerson.matchLookingFor && (
-            <p className="text-xs text-orange-600 font-semibold truncate flex items-center gap-1">
-              <Flame size={12} /> {selectedMapPerson.matchLookingFor}
-            </p>
-          )}
-          {selectedMapPerson.distance != null && (
-            <p className="text-[11px] text-[var(--text-muted)] flex items-center gap-1 mt-0.5">
-              <MapPin size={11} /> {selectedMapPerson.distance < 1 ? `${Math.round(selectedMapPerson.distance * 1000)}m` : `${selectedMapPerson.distance.toFixed(1)} km`}
-            </p>
-          )}
+  const renderPeople = () => {
+    if (people.length === 0) {
+      return (
+        <div className="text-center py-16 text-[var(--text-muted)] px-6">
+          <Flame size={40} className="mx-auto mb-3 text-orange-400/50" />
+          <p className="font-bold text-lg text-[var(--text-main)]">Nobody nearby yet</p>
+          <p className="text-sm mt-1">
+            Stay visible — when others nearby turn on Looking to smoke, they'll show up here. Send a vibe to start talking.
+          </p>
         </div>
-        <div className="flex flex-col gap-2 flex-shrink-0">
-          <button
-            type="button"
-            disabled={sentToIds.has(selectedMapPerson.id)}
-            onClick={() => setTappingPerson(selectedMapPerson)}
-            className="px-3 py-2 text-xs font-bold bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white rounded-full"
-          >
-            {sentToIds.has(selectedMapPerson.id) ? 'Sent' : 'Vibe'}
-          </button>
-          <button
-            type="button"
-            onClick={() => setSelectedMapPerson(null)}
-            className="text-[10px] text-[var(--text-muted)] hover:text-[var(--text-main)]"
-          >
-            Close
-          </button>
+      );
+    }
+
+    if (viewMode === 'list') {
+      return (
+        <div className="flex flex-col gap-3 p-4">
+          {people.map(person => (
+            <PersonListRow
+              key={person.id}
+              person={person}
+              alreadySent={sentToIds.has(person.id)}
+              onVibe={() => setTappingPerson(person)}
+              onReport={() => setReportingPerson(person)}
+              onBlock={() => handleBlock(person)}
+            />
+          ))}
         </div>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4">
+        {people.map(person => (
+          <PersonCard
+            key={person.id}
+            person={person}
+            alreadySent={sentToIds.has(person.id)}
+            onVibe={() => setTappingPerson(person)}
+            onReport={() => setReportingPerson(person)}
+            onBlock={() => handleBlock(person)}
+          />
+        ))}
       </div>
-    </div>
-  ) : null;
+    );
+  };
 
   const renderFeed = () => (
     <div className="flex flex-col h-full min-h-0 overflow-hidden animate-in fade-in">
@@ -500,12 +573,11 @@ const MatchIt: React.FC<{
       {presenceBar}
       {showInMatchIt && incomingVibesBar}
 
-      <div className="relative flex-1 min-h-0">
+      <div className="relative flex-1 min-h-0 overflow-y-auto pb-24 lg:pb-6">
         {!showInMatchIt ? (
-          <div className="absolute inset-0 overflow-hidden">
-            {/* Blurred ghost grid — no real profiles while invisible */}
+          <div className="relative min-h-full overflow-hidden">
             <div
-              className="grid grid-cols-2 gap-3 p-4 pb-28 pointer-events-none select-none"
+              className="grid grid-cols-2 gap-3 p-4 pointer-events-none select-none"
               aria-hidden="true"
               style={{ filter: 'blur(14px)', transform: 'scale(1.04)' }}
             >
@@ -545,75 +617,28 @@ const MatchIt: React.FC<{
               </div>
             </div>
           </div>
-        ) : loadError ? (
-          <div className="absolute top-3 left-3 right-3 z-30 bg-[var(--bg-card)] border border-red-300 text-red-700 rounded-2xl p-3 text-sm shadow-[var(--shadow-card)] flex items-start justify-between gap-3">
-            <p className="min-w-0">{loadError}</p>
-            <button
-              type="button"
-              onClick={() => void loadFeed()}
-              className="flex-shrink-0 text-xs font-bold px-3 py-1.5 rounded-full bg-red-600 text-white"
-            >
-              Retry
-            </button>
-          </div>
-        ) : null}
-
-        {showInMatchIt && isLoading ? (
-          <div className="flex flex-col items-center justify-center h-full gap-3 p-4">
+        ) : isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3 p-4">
             <Loader2 size={32} className="animate-spin text-orange-500" />
             <p className="text-sm text-[var(--text-muted)]">Finding people nearby…</p>
           </div>
-        ) : showInMatchIt && viewMode === 'map' ? (
-          <div className="absolute inset-0">
-            <MatchItPeopleMap
-              people={people}
-              userCoords={userCoords}
-              onSelectPerson={setSelectedMapPerson}
-              selectedPersonId={selectedMapPerson?.id}
-              fullScreen
-            />
-            {people.length > 0 && (
-              <div className="absolute top-3 right-3 z-20 rounded-full bg-[var(--bg-card)]/95 border border-[var(--border)] px-3 py-1 text-[10px] font-semibold text-[var(--text-muted)] backdrop-blur-sm">
-                {people.filter(p => typeof p.latitude === 'number' && typeof p.longitude === 'number').length} on map · tap pin
-              </div>
-            )}
-            {people.length > 0 &&
-              !people.some(p => typeof p.latitude === 'number' && typeof p.longitude === 'number') && (
-              <div className="absolute inset-x-3 top-14 z-20 bg-[var(--bg-card)]/95 border border-[var(--border)] rounded-2xl p-3 text-sm text-[var(--text-secondary)] backdrop-blur-sm">
-                People are nearby but none shared GPS yet.{' '}
-                <button type="button" className="font-bold text-orange-600 underline" onClick={() => setViewMode('list')}>
-                  Open list
+        ) : (
+          <>
+            {loadError && (
+              <div className="mx-4 mt-4 bg-[var(--bg-card)] border border-red-300 text-red-700 rounded-2xl p-3 text-sm shadow-[var(--shadow-card)] flex items-start justify-between gap-3">
+                <p className="min-w-0">{loadError}</p>
+                <button
+                  type="button"
+                  onClick={() => void loadFeed()}
+                  className="flex-shrink-0 text-xs font-bold px-3 py-1.5 rounded-full bg-red-600 text-white"
+                >
+                  Retry
                 </button>
               </div>
             )}
-            {mapPersonSheet}
-          </div>
-        ) : showInMatchIt ? (
-          <div className="h-full overflow-y-auto pb-24 lg:pb-6">
-            {people.length > 0 ? (
-              <div className="grid grid-cols-2 gap-3 p-4">
-                {people.map(person => (
-                  <PersonCard
-                    key={person.id}
-                    person={person}
-                    alreadySent={sentToIds.has(person.id)}
-                    onVibe={() => setTappingPerson(person)}
-                    onReport={() => setReportingPerson(person)}
-                    onBlock={() => handleBlock(person)}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-16 text-[var(--text-muted)] px-6">
-                <Flame size={40} className="mx-auto mb-3 text-orange-400/50" />
-                <p className="font-bold text-lg text-[var(--text-main)]">Nobody nearby yet</p>
-                <p className="text-sm mt-1">
-                  Stay visible — when others nearby turn on Looking to smoke, they'll show up here.
-                </p>
-              </div>
-            )}
-          </div>
-        ) : null}
+            {renderPeople()}
+          </>
+        )}
       </div>
     </div>
   );
@@ -626,7 +651,7 @@ const MatchIt: React.FC<{
           <div className="text-center py-20 text-[var(--text-muted)]">
             <Flame size={48} className="mx-auto mb-4 opacity-50 text-orange-400" />
             <p className="font-bold text-lg">No matches yet</p>
-            <p className="text-sm">Send vibes to people nearby to spark a sesh.</p>
+            <p className="text-sm">Send vibes to people nearby to spark a sesh — chat unlocks after you match.</p>
           </div>
         ) : (
           myMatches.map(group => {
@@ -666,8 +691,10 @@ const MatchIt: React.FC<{
         </button>
       </div>
 
-      <div className={`flex-1 min-h-0 ${activeTab === 'FIND' && viewMode === 'map' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
-        {activeTab === 'FIND' ? renderFeed() : renderChats()}
+      <div className="flex-1 min-h-0 overflow-hidden">
+        {activeTab === 'FIND' ? renderFeed() : (
+          <div className="h-full overflow-y-auto">{renderChats()}</div>
+        )}
       </div>
     </div>
   );

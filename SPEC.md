@@ -183,7 +183,7 @@ MatchIt is a **Grindr-style people feed**: nearby adults who want to smoke, not 
 
 #### Tabs
 
-1. **Nearby** — Map (fullscreen pins; list does not show underneath) or List grid of people in your city/state (sorted by distance when lat/lng available)
+1. **Nearby** — Grindr-style **Grid** or **List** of people in your city/state (sorted by distance when lat/lng available). Send a vibe to talk first; chat unlocks after a match.
 2. **Matches** — `MATCH` type groups where user is a member
 
 #### Person cards
@@ -662,8 +662,7 @@ Cursor slash command: **`/update`** — same readiness refresh workflow (see `.c
     ├── StrainVerseDirectory.tsx
     ├── StrainProfilePage.tsx
     ├── HighlineFeed.tsx       # HerbHub
-    ├── MatchIt.tsx            # Nearby map/list + matches
-    ├── MatchItPeopleMap.tsx   # Fullscreen MatchIt map
+    ├── MatchIt.tsx            # Nearby grid/list + matches (vibe-first)
     ├── PwaUpdateRefresh.tsx   # SW auto-update chip
     ├── SocialSeshDirectory.tsx
     ├── SocialSeshView.tsx
@@ -692,10 +691,10 @@ Cursor slash command: **`/update`** — same readiness refresh workflow (see `.c
 ### MatchIt match flow
 
 1. User 21+ with city/state flips **Looking to smoke** on (optionally sets looking-for status)
-2. Nearby people with presence on appear on the **Map** (fullscreen) or **List** grid — modes are exclusive (list does not show under the map)
+2. Nearby people with presence on appear in the **Grid** or **List** (by city/state, sorted by distance)
 3. Send SPARK via Vibe modal → if mutual SPARK → match group auto-created → open chat
 4. TAP vibes → recipient sees incoming vibe → Match or Decline
-5. Matched users appear under **Matches** tab
+5. Matched users appear under **Matches** tab — no open chat until matched
 
 ### Strain enthusiast flow
 
