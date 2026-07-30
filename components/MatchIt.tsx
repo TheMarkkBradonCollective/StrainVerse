@@ -10,9 +10,41 @@ const LOOKING_FOR_OPTIONS = [
   'Sesh later today',
   'Looking for new friends',
   'Looking for people to try strain with',
-];
+] as const;
+
+type LookingForOption = (typeof LOOKING_FOR_OPTIONS)[number];
 
 const VIEW_MODE_KEY = 'matchit-nearby-view';
+
+/** Parse stored looking-for (JSON array or legacy single string). */
+export const parseLookingFor = (raw?: string | null): LookingForOption[] => {
+  if (!raw?.trim()) return [LOOKING_FOR_OPTIONS[0]];
+  const trimmed = raw.trim();
+  if (trimmed.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        const valid = parsed.filter((v): v is LookingForOption =>
+          typeof v === 'string' && (LOOKING_FOR_OPTIONS as readonly string[]).includes(v)
+        );
+        if (valid.length) return valid;
+      }
+    } catch {
+      /* fall through */
+    }
+  }
+  if ((LOOKING_FOR_OPTIONS as readonly string[]).includes(trimmed)) {
+    return [trimmed as LookingForOption];
+  }
+  // Comma-separated legacy
+  const parts = trimmed.split(',').map(s => s.trim()).filter((v): v is LookingForOption =>
+    (LOOKING_FOR_OPTIONS as readonly string[]).includes(v)
+  );
+  return parts.length ? parts : [LOOKING_FOR_OPTIONS[0]];
+};
+
+export const serializeLookingFor = (values: LookingForOption[]): string =>
+  JSON.stringify(values.length ? values : [LOOKING_FOR_OPTIONS[0]]);
 
 const distanceLabel = (person: MatchPerson) =>
   person.distance != null
@@ -20,6 +52,35 @@ const distanceLabel = (person: MatchPerson) =>
       ? `${Math.round(person.distance * 1000)}m`
       : `${person.distance.toFixed(1)} km`
     : person.city || 'Nearby';
+
+const LookingForDisplay: React.FC<{ raw?: string; className?: string; compact?: boolean }> = ({
+  raw,
+  className = '',
+  compact = false,
+}) => {
+  if (!raw) return null;
+  const intents = parseLookingFor(raw);
+  if (compact) {
+    return (
+      <p className={`text-xs font-semibold truncate flex items-center gap-1 ${className}`}>
+        <Flame size={12} className="flex-shrink-0" />
+        {intents.join(' · ')}
+      </p>
+    );
+  }
+  return (
+    <div className={`flex flex-wrap gap-1 ${className}`}>
+      {intents.map(intent => (
+        <span
+          key={intent}
+          className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500/90 text-white"
+        >
+          <Flame size={10} /> {intent}
+        </span>
+      ))}
+    </div>
+  );
+};
 
 const ReportModal: React.FC<{
   person: MatchPerson;
@@ -132,11 +193,7 @@ const PersonCard: React.FC<{
 
       <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
         <h3 className="font-extrabold text-lg leading-tight truncate">{person.name}</h3>
-        {person.matchLookingFor && (
-          <p className="text-xs text-orange-200 font-semibold mt-0.5 truncate flex items-center gap-1">
-            <Flame size={12} /> {person.matchLookingFor}
-          </p>
-        )}
+        <LookingForDisplay raw={person.matchLookingFor} className="mt-1" />
         {person.smokingStyle && (
           <p className="text-[11px] text-white/70 mt-0.5 flex items-center gap-1">
             <Leaf size={11} /> Prefers {person.smokingStyle}
@@ -178,11 +235,7 @@ const PersonListRow: React.FC<{
             <MapPin size={11} /> {distanceLabel(person)}
           </span>
         </div>
-        {person.matchLookingFor && (
-          <p className="text-xs text-orange-600 font-semibold mt-0.5 truncate flex items-center gap-1">
-            <Flame size={12} /> {person.matchLookingFor}
-          </p>
-        )}
+        <LookingForDisplay raw={person.matchLookingFor} className="mt-1 text-orange-600" compact />
         {person.smokingStyle && (
           <p className="text-[11px] text-[var(--text-muted)] mt-0.5 flex items-center gap-1 truncate">
             <Leaf size={11} /> Prefers {person.smokingStyle}
@@ -245,7 +298,7 @@ const MatchIt: React.FC<{
   const [locationShares, setLocationShares] = useState<MatchItLocationShare[]>([]);
   const [selectedMapPin, setSelectedMapPin] = useState<MatchMapPin | null>(null);
   const [showInMatchIt, setShowInMatchIt] = useState(Boolean(user.showInMatchIt));
-  const [lookingFor, setLookingFor] = useState(user.matchLookingFor || LOOKING_FOR_OPTIONS[0]);
+  const [lookingFor, setLookingFor] = useState<LookingForOption[]>(() => parseLookingFor(user.matchLookingFor));
   const [presenceSaving, setPresenceSaving] = useState(false);
   const [tappingPerson, setTappingPerson] = useState<MatchPerson | null>(null);
   const [reportingPerson, setReportingPerson] = useState<MatchPerson | null>(null);
@@ -282,7 +335,7 @@ const MatchIt: React.FC<{
 
   useEffect(() => {
     setShowInMatchIt(Boolean(user.showInMatchIt));
-    if (user.matchLookingFor) setLookingFor(user.matchLookingFor);
+    if (user.matchLookingFor) setLookingFor(parseLookingFor(user.matchLookingFor));
   }, [user.showInMatchIt, user.matchLookingFor]);
 
   useEffect(() => {
@@ -313,7 +366,7 @@ const MatchIt: React.FC<{
     setShowInMatchIt(next);
     setPresenceSaving(true);
     try {
-      await api.setMatchItPresence(user.id, next, lookingFor);
+      await api.setMatchItPresence(user.id, next, serializeLookingFor(lookingFor));
       await refreshUser();
       await loadFeed();
     } catch (e: any) {
@@ -324,13 +377,19 @@ const MatchIt: React.FC<{
     }
   };
 
-  const handleLookingForChange = async (value: string) => {
-    setLookingFor(value);
+  const handleLookingForToggle = async (option: LookingForOption) => {
+    const next = lookingFor.includes(option)
+      ? lookingFor.filter(v => v !== option)
+      : [...lookingFor, option];
+    // Keep at least one intent selected
+    if (next.length === 0) return;
+    setLookingFor(next);
     if (!showInMatchIt) return;
     try {
-      await api.setMatchItPresence(user.id, true, value);
+      await api.setMatchItPresence(user.id, true, serializeLookingFor(next));
       await refreshUser();
     } catch (e: any) {
+      setLookingFor(lookingFor);
       alert(e.message || 'Could not update status');
     }
   };
@@ -449,15 +508,26 @@ const MatchIt: React.FC<{
 
       {showInMatchIt && (
         <>
-          <select
-            value={lookingFor}
-            onChange={e => handleLookingForChange(e.target.value)}
-            className="w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-xl p-2.5 text-sm focus:outline-none focus:border-orange-400"
-          >
-            {LOOKING_FOR_OPTIONS.map(opt => (
-              <option key={opt} value={opt}>{opt}</option>
-            ))}
-          </select>
+          <div className="flex flex-wrap gap-2" role="group" aria-label="What are you looking for">
+            {LOOKING_FOR_OPTIONS.map(opt => {
+              const selected = lookingFor.includes(opt);
+              return (
+                <button
+                  key={opt}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => void handleLookingForToggle(opt)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
+                    selected
+                      ? 'bg-orange-500 border-orange-500 text-white'
+                      : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--text-muted)] hover:border-orange-400 hover:text-[var(--text-main)]'
+                  }`}
+                >
+                  {opt}
+                </button>
+              );
+            })}
+          </div>
           <div className="flex items-center justify-between gap-2">
             <p className="text-xs text-[var(--text-muted)] flex items-center gap-1 min-w-0 truncate">
               <MapPin size={12} /> People near {user.city}, {user.state}
