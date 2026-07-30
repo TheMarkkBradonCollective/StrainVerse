@@ -954,7 +954,7 @@ const MatchIt: React.FC<{
   const renderPeople = () => {
     if (viewMode === 'map') {
       return (
-        <div className="relative h-[min(70vh,560px)] min-h-[320px] mx-3 mb-4 rounded-[1.5rem] overflow-hidden border border-[var(--border)]">
+        <div className="relative flex-1 min-h-0 mx-3 mb-3 rounded-[1.5rem] overflow-hidden border border-[var(--border)]">
           <MatchItPeopleMap
             pins={mapPins}
             userCoords={userCoords}
@@ -1067,8 +1067,13 @@ const MatchIt: React.FC<{
       {presenceBar}
       {showInMatchIt && incomingVibesBar}
 
-      <div className="relative flex-1 min-h-0 overflow-y-auto sv-scroll-pad">
-        {!showInMatchIt ? (
+      <div
+        className={`relative flex-1 min-h-0 ${
+          viewMode === 'map' && showInMatchIt
+            ? 'overflow-hidden flex flex-col'
+            : 'overflow-y-auto sv-scroll-pad'
+        }`}
+      >        {!showInMatchIt ? (
           <div className="relative min-h-full overflow-hidden">
             <div
               className="grid grid-cols-2 gap-3 p-4 pointer-events-none select-none"

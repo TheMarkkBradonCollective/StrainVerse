@@ -38,10 +38,58 @@ export function latLngToPercent(
   };
 }
 
-export function getStaticMapUrl(bounds: MapBounds, width = 800, height = 500): string {
-  const centerLat = (bounds.minLat + bounds.maxLat) / 2;
-  const centerLng = (bounds.minLng + bounds.maxLng) / 2;
-  const latSpan = bounds.maxLat - bounds.minLat;
-  const zoom = Math.max(10, Math.min(15, Math.round(14 - Math.log2(latSpan * 120))));
-  return `https://staticmap.openstreetmap.de/staticmap.php?center=${centerLat},${centerLng}&zoom=${zoom}&size=${width}x${height}&maptype=mapnik`;
+/** Web Mercator helpers for OSM-compatible raster tiles. */
+export function lonToTileX(lon: number, zoom: number): number {
+  return ((lon + 180) / 360) * 2 ** zoom;
+}
+
+export function latToTileY(lat: number, zoom: number): number {
+  const rad = (lat * Math.PI) / 180;
+  return ((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * 2 ** zoom;
+}
+
+export function tileXToLon(x: number, zoom: number): number {
+  return (x / 2 ** zoom) * 360 - 180;
+}
+
+export function tileYToLat(y: number, zoom: number): number {
+  const n = Math.PI - (2 * Math.PI * y) / 2 ** zoom;
+  return (180 / Math.PI) * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+}
+
+export function zoomForBounds(bounds: MapBounds, widthPx: number, heightPx: number): number {
+  const WORLD = 256;
+  const latFraction = Math.abs(latToTileY(bounds.maxLat, 0) - latToTileY(bounds.minLat, 0));
+  const lngFraction = Math.abs(bounds.maxLng - bounds.minLng) / 360;
+  const latZoom = Math.log2(heightPx / WORLD / Math.max(latFraction, 1e-6));
+  const lngZoom = Math.log2(widthPx / WORLD / Math.max(lngFraction, 1e-6));
+  // Slightly zoom out so pins aren't clipped at edges
+  return Math.max(2, Math.min(18, Math.floor(Math.min(latZoom, lngZoom) - 0.35)));
+}
+
+/** Recompute bounds from center zoom so pins align with the tiled basemap. */
+export function boundsFromCenterZoom(
+  centerLat: number,
+  centerLng: number,
+  zoom: number,
+  widthPx: number,
+  heightPx: number
+): MapBounds {
+  const cx = lonToTileX(centerLng, zoom);
+  const cy = latToTileY(centerLat, zoom);
+  const halfW = widthPx / 2 / 256;
+  const halfH = heightPx / 2 / 256;
+  return {
+    minLng: tileXToLon(cx - halfW, zoom),
+    maxLng: tileXToLon(cx + halfW, zoom),
+    maxLat: tileYToLat(cy - halfH, zoom),
+    minLat: tileYToLat(cy + halfH, zoom),
+  };
+}
+
+/** Carto Voyager — free raster tiles, no API key. */
+export function tileUrl(z: number, x: number, y: number): string {
+  const n = (x + y) % 3;
+  const host = ['a', 'b', 'c'][n];
+  return `https://${host}.basemaps.cartocdn.com/rastertiles/voyager/${z}/${x}/${y}.png`;
 }
