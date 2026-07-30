@@ -1,11 +1,13 @@
 {
   "name": "strainverse",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/generate-icons.mjs && vite build",
+    "prebuild": "node scripts/update.mjs",
+    "update": "node scripts/update.mjs",
+    "build": "vite build",
     "preview": "vite preview",
     "generate-icons": "node scripts/generate-icons.mjs"
   },

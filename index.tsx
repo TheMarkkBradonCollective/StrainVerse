@@ -1,17 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './utils/pwaInstall';
-import { registerSW } from 'virtual:pwa-register';
 import App from './App';
-
-registerSW({
-  immediate: true,
-  onRegistered(registration) {
-    if (registration) {
-      registration.update();
-    }
-  },
-});
+import PwaUpdateRefresh from './components/PwaUpdateRefresh';
+import InstallPrompt from './components/InstallPrompt';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -22,5 +14,7 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <App />
+    <PwaUpdateRefresh />
+    <InstallPrompt />
   </React.StrictMode>
 );
