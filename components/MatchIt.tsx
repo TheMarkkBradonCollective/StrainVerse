@@ -10,8 +10,8 @@ const LOOKING_FOR_OPTIONS = [
   {
     id: 'match',
     label: 'Match',
-    blurb: 'Find someone to smoke with — hang, vibe, and light up together.',
-    aliases: ['Match to smoke', 'Looking for new friends'],
+    blurb: 'We both bring. Each of you shows up with your own tree and smoke together.',
+    aliases: ['Match to smoke', 'Looking for new friends', 'We both bring'],
   },
   {
     id: 'burn_one',
@@ -24,6 +24,12 @@ const LOOKING_FOR_OPTIONS = [
     label: 'Smoke me out',
     blurb: 'Hoping someone brings the flower and treats you to a smoke.',
     aliases: [] as string[],
+  },
+  {
+    id: 'smoke_you_out',
+    label: 'Smoke you out',
+    blurb: "I got the tree — I'll smoke you out. You're treating.",
+    aliases: ['I got the tree', "I'll smoke you out", 'Ill smoke you out'],
   },
   {
     id: 'pack_pass',
