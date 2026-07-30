@@ -157,6 +157,7 @@ export const toggleLookingForSelection = (current: LookingForId[], option: Looki
 const VIEW_MODE_KEY = 'matchit-nearby-view';
 const FILTER_KEY = 'matchit-intent-filters';
 const FILTER_OPEN_KEY = 'matchit-filter-open';
+const DOWN_FOR_OPEN_KEY = 'matchit-down-for-open';
 
 /** Parse stored looking-for (JSON ids/labels or legacy single string). Defaults to Match. */
 export const parseLookingFor = (raw?: string | null): LookingForId[] => {
@@ -518,6 +519,12 @@ const MatchIt: React.FC<{
     if (typeof window === 'undefined') return false;
     return window.localStorage.getItem(FILTER_OPEN_KEY) === '1';
   });
+  const [downForOpen, setDownForOpen] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    const saved = window.localStorage.getItem(DOWN_FOR_OPEN_KEY);
+    // Default open so Match / intents are visible first visit
+    return saved !== '0';
+  });
   const [presenceSaving, setPresenceSaving] = useState(false);
   const [tappingPerson, setTappingPerson] = useState<MatchPerson | null>(null);
   const [showIntentGlossary, setShowIntentGlossary] = useState(false);
@@ -536,6 +543,10 @@ const MatchIt: React.FC<{
   useEffect(() => {
     window.localStorage.setItem(FILTER_OPEN_KEY, filterOpen ? '1' : '0');
   }, [filterOpen]);
+
+  useEffect(() => {
+    window.localStorage.setItem(DOWN_FOR_OPEN_KEY, downForOpen ? '1' : '0');
+  }, [downForOpen]);
 
   const loadFeed = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) setIsLoading(true);
@@ -740,39 +751,62 @@ const MatchIt: React.FC<{
         <>
           <div className="space-y-1.5">
             <div className="flex items-center justify-between gap-2">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)]">
+              <button
+                type="button"
+                onClick={() => setDownForOpen(v => !v)}
+                className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors min-w-0"
+                aria-expanded={downForOpen}
+                aria-controls="matchit-down-for"
+              >
                 I&apos;m down for
-              </p>
+                {lookingFor.length > 0 && (
+                  <span className="normal-case tracking-normal font-semibold text-orange-600 truncate">
+                    ({lookingFor.map(lookingForLabel).join(', ')})
+                  </span>
+                )}
+                <ChevronDown
+                  size={14}
+                  className={`flex-shrink-0 transition-transform ${downForOpen ? 'rotate-180' : ''}`}
+                  aria-hidden
+                />
+              </button>
               <button
                 type="button"
                 onClick={() => setShowIntentGlossary(true)}
-                className="inline-flex items-center gap-1 text-[11px] font-semibold text-orange-600 hover:text-orange-500"
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-orange-600 hover:text-orange-500 flex-shrink-0"
                 aria-label="What do these smoke intents mean?"
               >
-                <CircleHelp size={13} /> What do these mean?
+                <CircleHelp size={13} /> Help
               </button>
             </div>
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Set your smoke intents">
-              {LOOKING_FOR_OPTIONS.map(opt => {
-                const selected = lookingFor.includes(opt.id);
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    aria-pressed={selected}
-                    title={opt.blurb}
-                    onClick={() => void handleLookingForToggle(opt.id)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
-                      selected
-                        ? 'bg-orange-500 border-orange-500 text-white'
-                        : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--text-muted)] hover:border-orange-400 hover:text-[var(--text-main)]'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
+            {downForOpen && (
+              <div
+                id="matchit-down-for"
+                className="flex flex-wrap gap-2"
+                role="group"
+                aria-label="Set your smoke intents"
+              >
+                {LOOKING_FOR_OPTIONS.map(opt => {
+                  const selected = lookingFor.includes(opt.id);
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      aria-pressed={selected}
+                      title={opt.blurb}
+                      onClick={() => void handleLookingForToggle(opt.id)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
+                        selected
+                          ? 'bg-orange-500 border-orange-500 text-white'
+                          : 'bg-[var(--bg-input)] border-[var(--border)] text-[var(--text-muted)] hover:border-orange-400 hover:text-[var(--text-main)]'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
           <div className="space-y-1.5">
             <div className="flex items-center justify-between gap-2">
