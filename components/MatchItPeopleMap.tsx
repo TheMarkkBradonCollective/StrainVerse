@@ -147,9 +147,12 @@ const MatchItPeopleMap: React.FC<MatchItPeopleMapProps> = ({
           title="You — edit your look"
           aria-label="Edit your MatchIt profile"
           onClick={() => {
+            if (onSelectSelf) {
+              onSelectSelf();
+              return;
+            }
             const selfPin = pins.find(p => p.isSelf);
             if (selfPin) onSelectPin?.(selfPin);
-            onSelectSelf?.();
           }}
         >
           <div className="relative">
