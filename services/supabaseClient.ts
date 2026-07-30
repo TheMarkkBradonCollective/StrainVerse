@@ -312,7 +312,7 @@ export const api = {
   },
 
   updateProfile: async (userId: string, updates: Partial<User>) => {
-    const { name, bio, city, state, favStrains, smokingStyle, dateOfBirth, showInMatchIt, matchLookingFor } = updates;
+    const { name, bio, city, state, favStrains, smokingStyle, dateOfBirth, showInMatchIt, matchLookingFor, avatar } = updates;
     
     // Map application's camelCase to database's snake_case
     const dbPayload: { [key: string]: any } = {};
@@ -326,6 +326,7 @@ export const api = {
     if (dateOfBirth !== undefined) dbPayload.date_of_birth = dateOfBirth;
     if (showInMatchIt !== undefined) dbPayload.show_in_matchit = showInMatchIt;
     if (matchLookingFor !== undefined) dbPayload.matchit_looking_for = matchLookingFor;
+    if (avatar !== undefined) dbPayload.avatar = avatar;
     
     if (Object.keys(dbPayload).length === 0) return;
     
@@ -350,10 +351,15 @@ export const api = {
       }
   },
 
-  uploadImage: async (file: File): Promise<string | null> => {
-      // Prefix with 'posts/' to organize in the StrainVerse bucket
-      const fileName = `posts/${Date.now()}-${file.name}`;
-      const { data, error } = await supabase.storage.from('StrainVerse').upload(fileName, file);
+  uploadImage: async (file: File, folder = 'posts'): Promise<string | null> => {
+      const safeFolder = folder.replace(/[^a-zA-Z0-9_-]/g, '') || 'posts';
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `${safeFolder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { data, error } = await supabase.storage.from('StrainVerse').upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: file.type || undefined,
+      });
       if(error) {
           console.error("Image upload error:", error);
           return null;

@@ -26,6 +26,7 @@ interface MatchItPeopleMapProps {
   pins: MapPin[];
   userCoords?: { lat: number; lng: number } | null;
   onSelectPin?: (pin: MapPin) => void;
+  onSelectSelf?: () => void;
   selectedPinId?: string | null;
   fullScreen?: boolean;
   emptyHint?: string;
@@ -70,6 +71,7 @@ const MatchItPeopleMap: React.FC<MatchItPeopleMapProps> = ({
   pins,
   userCoords,
   onSelectPin,
+  onSelectSelf,
   selectedPinId,
   fullScreen = false,
   emptyHint = 'Only you on the map until someone shares location in a Match chat.',
@@ -138,18 +140,33 @@ const MatchItPeopleMap: React.FC<MatchItPeopleMapProps> = ({
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/15 pointer-events-none" />
 
       {userCoords && (
-        <div
+        <button
+          type="button"
           className="absolute z-20 -translate-x-1/2 -translate-y-1/2"
           style={latLngToPercent(userCoords.lat, userCoords.lng, viewBounds)}
-          title="You are here"
+          title="You — edit your look"
+          aria-label="Edit your MatchIt profile"
+          onClick={() => {
+            const selfPin = pins.find(p => p.isSelf);
+            if (selfPin) onSelectPin?.(selfPin);
+            onSelectSelf?.();
+          }}
         >
           <div className="relative">
-            <div className="w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow-md" />
+            {pins.find(p => p.isSelf)?.avatar ? (
+              <img
+                src={pins.find(p => p.isSelf)!.avatar}
+                alt=""
+                className="w-11 h-11 rounded-full border-2 border-blue-400 object-cover shadow-md"
+              />
+            ) : (
+              <div className="w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow-md mx-auto" />
+            )}
             <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-bold text-white bg-blue-600/90 px-1.5 py-0.5 rounded-full">
               You
             </span>
           </div>
-        </div>
+        </button>
       )}
 
       {pins
