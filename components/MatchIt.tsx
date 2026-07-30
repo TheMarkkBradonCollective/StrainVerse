@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { User, Group, ReportCategory, MatchItInteraction, MatchPerson, MatchItLocationShare } from '../types';
-import { Flame, MapPin, AlertTriangle, ShieldOff, Flag, XCircle, Loader2, MessageSquare, Sparkles, MessageCircle, Leaf, LayoutGrid, List, Map, CircleHelp, ChevronDown } from 'lucide-react';
+import { Flame, MapPin, AlertTriangle, ShieldOff, Flag, XCircle, Loader2, MessageSquare, Sparkles, MessageCircle, Leaf, LayoutGrid, List, Map, CircleHelp, ChevronDown, Camera, UserRound } from 'lucide-react';
 import VibeTapModal from './VibeTapModal';
 import MatchItPeopleMap, { sharesToMapPins, MapPin as MatchMapPin } from './MatchItPeopleMap';
+import MatchItSelfProfileModal from './MatchItSelfProfileModal';
 import { api } from '../services/supabaseClient';
 
 /** Stable ids stored in DB; labels are what users see. */
@@ -349,6 +350,114 @@ const MatchSuccessModal: React.FC<{
   </div>
 );
 
+const strainPrefLabel = (prefs?: MatchPerson['matchStrainPrefs']) =>
+  (prefs || []).map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' · ');
+
+/** Grindr-style photo tile — vibe first, no open chat until matched */
+const SelfProfileCard: React.FC<{ user: User; onEdit: () => void }> = ({ user, onEdit }) => {
+  const age = user.dateOfBirth
+    ? (() => {
+        const birthDate = new Date(user.dateOfBirth);
+        if (Number.isNaN(birthDate.getTime())) return null;
+        const today = new Date();
+        let a = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) a--;
+        return a;
+      })()
+    : null;
+  const strainLabel = strainPrefLabel(user.matchStrainPrefs);
+
+  return (
+  <button
+    type="button"
+    onClick={onEdit}
+    className="relative aspect-[3/4] rounded-[1.5rem] overflow-hidden bg-[var(--bg-card)] border-2 border-orange-400/70 shadow-[var(--shadow-card)] text-left group"
+  >
+    {user.avatar ? (
+      <img src={user.avatar} alt="" className="absolute inset-0 w-full h-full object-cover" />
+    ) : (
+      <div className="absolute inset-0 flex items-center justify-center bg-[var(--bg-input)] text-[var(--text-muted)]">
+        <Camera size={32} />
+      </div>
+    )}
+    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+    <span className="absolute top-3 left-3 inline-flex items-center gap-1 text-[11px] font-bold bg-orange-500 text-white px-2.5 py-1 rounded-full">
+      You
+    </span>
+    <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
+      <h3 className="font-extrabold text-lg leading-tight truncate">
+        {user.name || 'Add your tag'}
+        {age != null ? <span className="font-bold opacity-90">, {age}</span> : null}
+      </h3>
+      {user.bio?.trim() && (
+        <p className="text-[11px] text-white/85 mt-0.5 line-clamp-2">{user.bio.trim()}</p>
+      )}
+      {strainLabel && <p className="text-[11px] text-white/80 font-semibold mt-0.5">{strainLabel}</p>}
+      <LookingForDisplay raw={user.matchLookingFor} className="mt-1" />
+      <p className="mt-3 w-full bg-white/15 group-hover:bg-white/25 text-white text-sm font-bold py-2 rounded-full flex items-center justify-center gap-2 transition-colors">
+        <Camera size={14} /> Edit your look
+      </p>
+    </div>
+  </button>
+  );
+};
+
+const SelfProfileListRow: React.FC<{ user: User; onEdit: () => void }> = ({ user, onEdit }) => {
+  const age = user.dateOfBirth
+    ? (() => {
+        const birthDate = new Date(user.dateOfBirth);
+        if (Number.isNaN(birthDate.getTime())) return null;
+        const today = new Date();
+        let a = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) a--;
+        return a;
+      })()
+    : null;
+  const strainLabel = strainPrefLabel(user.matchStrainPrefs);
+
+  return (
+  <button
+    type="button"
+    onClick={onEdit}
+    className="w-full flex items-center gap-3 p-3 bg-[var(--bg-card)] border-2 border-orange-400/60 rounded-[1.35rem] shadow-[var(--shadow-card)] text-left hover:border-orange-400 transition-colors"
+  >
+    <div className="relative w-16 h-16 rounded-2xl overflow-hidden flex-shrink-0 border border-[var(--border)] bg-[var(--bg-input)]">
+      {user.avatar ? (
+        <img src={user.avatar} alt="" className="w-full h-full object-cover" />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center text-[var(--text-muted)]">
+          <Camera size={22} />
+        </div>
+      )}
+    </div>
+    <div className="flex-1 min-w-0">
+      <div className="flex items-center gap-2 flex-wrap">
+        <h3 className="font-extrabold text-[var(--text-main)] truncate">
+          {user.name || 'Add your tag'}
+          {age != null ? <span className="font-bold text-[var(--text-muted)]">, {age}</span> : null}
+        </h3>
+        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-orange-600 bg-orange-500/10 px-2 py-0.5 rounded-full">
+          You
+        </span>
+      </div>
+      {strainLabel && (
+        <p className="text-[11px] font-semibold text-[var(--text-secondary)] mt-0.5">{strainLabel}</p>
+      )}
+      {user.bio?.trim() && (
+        <p className="text-[11px] text-[var(--text-muted)] mt-0.5 line-clamp-2">{user.bio.trim()}</p>
+      )}
+      <LookingForDisplay raw={user.matchLookingFor} className="mt-1 text-orange-600" compact />
+      <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Tap to edit photo, tag, age, bio &amp; style</p>
+    </div>
+    <span className="flex-shrink-0 w-10 h-10 rounded-full bg-orange-500 text-white flex items-center justify-center">
+      <UserRound size={18} />
+    </span>
+  </button>
+  );
+};
+
 /** Grindr-style photo tile — vibe first, no open chat until matched */
 const PersonCard: React.FC<{
   person: MatchPerson;
@@ -390,7 +499,18 @@ const PersonCard: React.FC<{
       </div>
 
       <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
-        <h3 className="font-extrabold text-lg leading-tight truncate">{person.name}</h3>
+        <h3 className="font-extrabold text-lg leading-tight truncate">
+          {person.name}
+          {person.age != null ? <span className="font-bold opacity-90">, {person.age}</span> : null}
+        </h3>
+        {person.bio?.trim() && (
+          <p className="text-[11px] text-white/85 mt-0.5 line-clamp-2">{person.bio.trim()}</p>
+        )}
+        {strainPrefLabel(person.matchStrainPrefs) && (
+          <p className="text-[11px] text-white/80 font-semibold mt-0.5">
+            {strainPrefLabel(person.matchStrainPrefs)}
+          </p>
+        )}
         <LookingForDisplay raw={person.matchLookingFor} className="mt-1" />
         {person.smokingStyle && (
           <p className="text-[11px] text-white/70 mt-0.5 flex items-center gap-1">
@@ -428,11 +548,22 @@ const PersonListRow: React.FC<{
       />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <h3 className="font-extrabold text-[var(--text-main)] truncate">{person.name}</h3>
+          <h3 className="font-extrabold text-[var(--text-main)] truncate">
+            {person.name}
+            {person.age != null ? <span className="font-bold text-[var(--text-muted)]">, {person.age}</span> : null}
+          </h3>
           <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[var(--text-muted)]">
             <MapPin size={11} /> {distanceLabel(person)}
           </span>
         </div>
+        {strainPrefLabel(person.matchStrainPrefs) && (
+          <p className="text-[11px] font-semibold text-[var(--text-secondary)] mt-0.5">
+            {strainPrefLabel(person.matchStrainPrefs)}
+          </p>
+        )}
+        {person.bio?.trim() && (
+          <p className="text-[11px] text-[var(--text-muted)] mt-0.5 line-clamp-2">{person.bio.trim()}</p>
+        )}
         <LookingForDisplay raw={person.matchLookingFor} className="mt-1 text-orange-600" compact />
         {person.smokingStyle && (
           <p className="text-[11px] text-[var(--text-muted)] mt-0.5 flex items-center gap-1 truncate">
@@ -522,6 +653,7 @@ const MatchIt: React.FC<{
   const [presenceSaving, setPresenceSaving] = useState(false);
   const [tappingPerson, setTappingPerson] = useState<MatchPerson | null>(null);
   const [showIntentGlossary, setShowIntentGlossary] = useState(false);
+  const [showSelfProfile, setShowSelfProfile] = useState(false);
   const [reportingPerson, setReportingPerson] = useState<MatchPerson | null>(null);
   const [matchSuccessInfo, setMatchSuccessInfo] = useState<{ group: Group; otherUser: { name: string; avatar: string } } | null>(null);
   const [interactions, setInteractions] = useState<MatchItInteraction[]>([]);
@@ -953,7 +1085,15 @@ const MatchIt: React.FC<{
           <MatchItPeopleMap
             pins={mapPins}
             userCoords={userCoords}
-            onSelectPin={setSelectedMapPin}
+            onSelectPin={(pin) => {
+              if (pin.isSelf) {
+                setShowSelfProfile(true);
+                setSelectedMapPin(null);
+                return;
+              }
+              setSelectedMapPin(pin);
+            }}
+            onSelectSelf={() => setShowSelfProfile(true)}
             selectedPinId={selectedMapPin?.id}
             fullScreen
             emptyHint="Only you until someone shares location in a Match chat"
@@ -1012,6 +1152,7 @@ const MatchIt: React.FC<{
     if (viewMode === 'list') {
       return (
         <div className="flex flex-col gap-3 p-4">
+          <SelfProfileListRow user={user} onEdit={() => setShowSelfProfile(true)} />
           {filteredPeople.map(person => (
             <PersonListRow
               key={person.id}
@@ -1028,6 +1169,7 @@ const MatchIt: React.FC<{
 
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4">
+        <SelfProfileCard user={user} onEdit={() => setShowSelfProfile(true)} />
         {filteredPeople.map(person => (
           <PersonCard
             key={person.id}
@@ -1048,6 +1190,14 @@ const MatchIt: React.FC<{
         <VibeTapModal userName={tappingPerson.name} onClose={() => setTappingPerson(null)} onSend={handleSendVibe} />
       )}
       {showIntentGlossary && <IntentGlossaryModal onClose={() => setShowIntentGlossary(false)} />}
+      {showSelfProfile && (
+        <MatchItSelfProfileModal
+          user={user}
+          lookingForLabels={lookingFor.map(lookingForLabel)}
+          onClose={() => setShowSelfProfile(false)}
+          onSaved={refreshUser}
+        />
+      )}
       {matchSuccessInfo && (
         <MatchSuccessModal info={matchSuccessInfo} onClose={() => setMatchSuccessInfo(null)} onGoToSesh={onMatch} />
       )}

@@ -649,6 +649,7 @@ alter table "StrainVerse".profiles add column if not exists status text default 
 alter table "StrainVerse".profiles add column if not exists role "StrainVerse"."user_role" default 'User' not null;
 alter table "StrainVerse".profiles add column if not exists show_in_matchit boolean default false;
 alter table "StrainVerse".profiles add column if not exists matchit_looking_for text;
+alter table "StrainVerse".profiles add column if not exists matchit_strain_prefs text;
 
 
 -- Add columns to groups for customization
