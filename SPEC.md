@@ -183,7 +183,7 @@ MatchIt is a **Grindr-style people feed**: nearby adults who want to smoke, not 
 
 #### Tabs
 
-1. **Nearby** — Grindr-style **Grid** or **List** of people in your city/state (sorted by distance when lat/lng available). Send a vibe to talk first; chat unlocks after a match.
+1. **Nearby** — Grindr-style **Grid**, **List**, or **Map**. Map shows only you until a match shares location from chat (5 timers + Always on). Send a vibe to talk first; chat unlocks after a match.
 2. **Matches** — `MATCH` type groups where user is a member
 
 #### Person cards

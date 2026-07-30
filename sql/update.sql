@@ -563,6 +563,53 @@ create unique index if not exists matchit_person_vibe_uidx
   on "StrainVerse".matchit_interactions (sender_id, receiver_id)
   where post_id is null and status in ('PENDING', 'MATCHED');
 
+-- MatchIt location shares (chat opt-in pins; expires_at null = always on)
+create table if not exists "StrainVerse".matchit_location_shares (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references "StrainVerse".profiles(id) on delete cascade,
+  group_id text not null references "StrainVerse".groups(id) on delete cascade,
+  latitude float8 not null,
+  longitude float8 not null,
+  expires_at timestamptz,
+  created_at timestamptz default now(),
+  unique (user_id, group_id)
+);
+alter table "StrainVerse".matchit_location_shares enable row level security;
+drop policy if exists "Match members can view location shares" on "StrainVerse".matchit_location_shares;
+create policy "Match members can view location shares" on "StrainVerse".matchit_location_shares
+  for select to authenticated using (
+    exists (
+      select 1 from "StrainVerse".groups g
+      where g.id = group_id
+        and g.type = 'MATCH'
+        and g.members::jsonb ? auth.uid()::text
+    )
+    and (expires_at is null or expires_at > now())
+  );
+drop policy if exists "Users can insert own location shares" on "StrainVerse".matchit_location_shares;
+create policy "Users can insert own location shares" on "StrainVerse".matchit_location_shares
+  for insert to authenticated with check (
+    auth.uid() = user_id
+    and exists (
+      select 1 from "StrainVerse".groups g
+      where g.id = group_id
+        and g.type = 'MATCH'
+        and g.members::jsonb ? auth.uid()::text
+    )
+  );
+drop policy if exists "Users can update own location shares" on "StrainVerse".matchit_location_shares;
+create policy "Users can update own location shares" on "StrainVerse".matchit_location_shares
+  for update to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
+drop policy if exists "Users can delete own location shares" on "StrainVerse".matchit_location_shares;
+create policy "Users can delete own location shares" on "StrainVerse".matchit_location_shares
+  for delete to authenticated using (auth.uid() = user_id);
+
+create index if not exists matchit_location_shares_group_idx
+  on "StrainVerse".matchit_location_shares (group_id);
+create index if not exists matchit_location_shares_expires_idx
+  on "StrainVerse".matchit_location_shares (expires_at)
+  where expires_at is not null;
+
 -- TABLE MODIFICATIONS --
 
 -- Add new columns to Posts table for Strains, High Level, Soundtrack, and GroupID
@@ -755,6 +802,9 @@ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'StrainVerse' AND tablename = 'matchit_interactions') THEN
     ALTER PUBLICATION supabase_realtime ADD TABLE "StrainVerse".matchit_interactions;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'StrainVerse' AND tablename = 'matchit_location_shares') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE "StrainVerse".matchit_location_shares;
   END IF;
 END $$;
 

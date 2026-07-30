@@ -190,6 +190,19 @@ export interface Group {
   cover_image_url?: string;
 }
 
+export interface MatchItLocationShare {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatar: string;
+  groupId: string;
+  latitude: number;
+  longitude: number;
+  expiresAt: string | null;
+  createdAt: string;
+  isSelf?: boolean;
+}
+
 export interface ChatMessage {
   id: string;
   userId: string;
