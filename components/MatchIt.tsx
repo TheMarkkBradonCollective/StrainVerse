@@ -748,19 +748,14 @@ const MatchIt: React.FC<{
               <button
                 type="button"
                 onClick={() => setDownForOpen(v => !v)}
-                className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors min-w-0"
+                className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"
                 aria-expanded={downForOpen}
                 aria-controls="matchit-down-for"
               >
                 I&apos;m down for
-                {lookingFor.length > 0 && (
-                  <span className="normal-case tracking-normal font-semibold text-orange-600 truncate">
-                    ({lookingFor.map(lookingForLabel).join(', ')})
-                  </span>
-                )}
                 <ChevronDown
                   size={14}
-                  className={`flex-shrink-0 transition-transform ${downForOpen ? 'rotate-180' : ''}`}
+                  className={`transition-transform ${downForOpen ? 'rotate-180' : ''}`}
                   aria-hidden
                 />
               </button>
