@@ -8,6 +8,7 @@
     "prebuild": "node scripts/update.mjs",
     "update": "node scripts/update.mjs",
     "build": "vite build",
+    "build:apk": "node scripts/build-apk.mjs",
     "preview": "vite preview",
     "generate-icons": "node scripts/generate-icons.mjs"
   },

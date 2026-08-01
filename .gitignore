@@ -29,5 +29,14 @@ landing.png
 # Android signing (never commit)
 android/*.keystore
 android/*.jks
+android-app/*.keystore
+android-app/*.jks
 *.keystore
 *.jks
+
+# Built APKs (artifacts only; rebuild with npm run build:apk)
+android-app/*.apk
+*.apk
+
+# Generated Capacitor Android project (rebuild with npm run build:apk)
+android-app/capacitor-android/
