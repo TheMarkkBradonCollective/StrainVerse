@@ -34,9 +34,10 @@ android-app/*.jks
 *.keystore
 *.jks
 
-# Built APKs (artifacts only; rebuild with npm run build:apk)
+# Built APKs (local android-app copies only — public/*.apk is published for MBC App Market)
 android-app/*.apk
 *.apk
+!public/*.apk
 
 # Generated Capacitor Android project (rebuild with npm run build:apk)
 android-app/capacitor-android/

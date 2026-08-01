@@ -1,13 +1,24 @@
 {
   "name": "StrainVerse",
   "version": "1.1.0",
-  "updatedAt": "2026-08-01T10:23:51.841Z",
+  "updatedAt": "2026-08-01T11:30:22.845Z",
   "pwa": true,
   "apk": {
+    "ready": true,
     "packageId": "com.themarkkbradoncollective.strainverse",
     "name": "StrainVerse",
+    "label": "StrainVerse v1.1.0",
+    "version": "1.1.0",
+    "versionCode": 10100,
+    "url": "/strainverse.apk",
+    "downloadName": "StrainVerse-v1.1.0.apk",
+    "versionedUrl": "/strainverse-v1.1.0.apk",
+    "fileSize": 6256054,
+    "sha256": "5db4eab8deca79b5e1c762897db53d7ab400068c0c190d79e7c9b9604c6af6c1",
+    "releaseNotes": "StrainVerse v1.1.0 Android APK — full Capacitor build with embedded web shell. MatchIt multi-intent, mutual flame chat, look editor, and map.",
     "themeColor": "#0a0a0a",
     "backgroundColor": "#0a0a0a",
-    "icon": "/pwa-512.png"
+    "icon": "/pwa-512.png",
+    "archives": []
   }
 }

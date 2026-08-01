@@ -77,7 +77,7 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,woff,webmanifest,json}'],
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api/],
+        navigateFallbackDenylist: [/^\/api/, /\.apk$/i, /^\/version\.json$/],
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.pathname === '/version.json',
