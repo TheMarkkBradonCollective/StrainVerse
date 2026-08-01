@@ -7,8 +7,9 @@
  * Usage: npm run build && node scripts/build-apk.mjs
  */
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
-import { createWriteStream, existsSync } from 'node:fs';
+import { createWriteStream, existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -277,6 +278,53 @@ STRAINVERSE_KEY_PASSWORD=android
   await fs.mkdir(artifactDir, { recursive: true });
   await fs.copyFile(built, path.join(artifactDir, apkName));
 
+  // Publish for Vercel / MBC App Market (Findr pattern)
+  const slug = 'strainverse';
+  const publicApk = path.join(root, 'public', `${slug}.apk`);
+  const publicVersioned = path.join(root, 'public', `${slug}-v${versionName}.apk`);
+  await fs.copyFile(built, publicApk);
+  await fs.copyFile(built, publicVersioned);
+
+  const apkBuf = readFileSync(built);
+  const sha256 = createHash('sha256').update(apkBuf).digest('hex');
+  const fileSize = apkBuf.length;
+  let prevApk = {};
+  try {
+    prevApk = JSON.parse(await fs.readFile(path.join(root, 'public', 'version.json'), 'utf8')).apk || {};
+  } catch {
+    /* none */
+  }
+  const versionPayload = {
+    name: 'StrainVerse',
+    version: versionName,
+    updatedAt: new Date().toISOString(),
+    pwa: true,
+    apk: {
+      ready: true,
+      packageId: appId,
+      name: 'StrainVerse',
+      label: `StrainVerse v${versionName}`,
+      version: versionName,
+      versionCode,
+      url: `/${slug}.apk`,
+      downloadName: `StrainVerse-v${versionName}.apk`,
+      versionedUrl: `/${slug}-v${versionName}.apk`,
+      fileSize,
+      sha256,
+      releaseNotes:
+        prevApk.releaseNotes ||
+        `StrainVerse v${versionName} Android APK — full Capacitor build with embedded web shell.`,
+      themeColor: '#0a0a0a',
+      backgroundColor: '#0a0a0a',
+      icon: '/pwa-512.png',
+      archives: Array.isArray(prevApk.archives) ? prevApk.archives : [],
+    },
+  };
+  await fs.writeFile(
+    path.join(root, 'public', 'version.json'),
+    JSON.stringify(versionPayload, null, 2) + '\n'
+  );
+
   // Keep a copy of the Capacitor android project (no build junk / no keystore)
   const projectOut = path.join(outDir, 'capacitor-android');
   await fs.rm(projectOut, { recursive: true, force: true });
@@ -299,15 +347,20 @@ Package: \`${appId}\`
 Version: ${versionName} (${versionCode})
 Built with Capacitor — embeds \`dist/\` (offline-capable shell; network still needed for Supabase).
 
+Published for MBC App Market at:
+- \`public/strainverse.apk\` → \`/strainverse.apk\`
+- \`public/version.json\` → \`apk.ready: true\`
+
 ## Install
 \`\`\`bash
 adb install -r ${apkName}
 \`\`\`
 
-## Rebuild
+## Rebuild + publish
 \`\`\`bash
 npm run build
-node scripts/build-apk.mjs
+npm run build:apk
+# commit public/strainverse.apk + public/version.json, merge to main (Vercel deploys)
 \`\`\`
 
 Signing keystore lives at \`android-app/strainverse-release.keystore\` (gitignored).
@@ -319,6 +372,8 @@ Replace before Play Store upload.
   console.log(`\n✅ Full APK ready:`);
   console.log(`   ${destApk}`);
   console.log(`   ${path.join(artifactDir, apkName)}`);
+  console.log(`   ${publicApk}`);
+  console.log(`   version.json apk.ready=true sha256=${sha256.slice(0, 12)}…`);
 }
 
 main().catch((err) => {
